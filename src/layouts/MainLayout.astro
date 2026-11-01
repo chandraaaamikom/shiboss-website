@@ -1,0 +1,19 @@
+---
+import '../styles/global.css';
+import '../styles/orders.css';
+import '../styles/redesign.css';
+import '../styles/reference-v2.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import FloatingCart from '../components/FloatingCart.astro';
+interface Props { title:string }
+const { title }=Astro.props;
+const showFloatingCart = Astro.url.pathname === '/' || Astro.url.pathname.startsWith('/menu');
+---
+<!doctype html><html lang="id"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="Menu digital Kedai Susu Segar Shiboss. Lihat menu, harga, dan informasi produk yang tersedia."/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/><title>{title} | Kedai Susu Segar Shiboss</title></head><body>
+<a class="skip-link" href="#main">Langsung ke konten</a>
+<SiteHeader />
+<main id="main"><slot/>{showFloatingCart && <FloatingCart />}</main>
+<SiteFooter />
+</body></html>
+<script>import '../scripts/cart-nav'; import '../scripts/floating-cart';</script>

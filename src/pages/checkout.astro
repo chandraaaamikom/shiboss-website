@@ -1,0 +1,29 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { ORDERS_ENABLED } from 'astro:env/server';
+const ordersEnabled = ORDERS_ENABLED === 'true';
+---
+<MainLayout title="Checkout">
+  <section class="container order-page">
+    <p class="breadcrumb"><a href="/cart">Keranjang</a> / Checkout</p>
+    <div class="page-heading"><h1>Periksa pesananmu.</h1><p>{ordersEnabled ? 'Periksa pesanan, isi identitas, lalu kirim ke kedai.' : 'Tinjau ringkasan pesanan. Pengiriman pesanan online belum diaktifkan.'}</p></div>
+    <div class="order-layout">
+      <form class="order-panel checkout-form" data-checkout-form data-orders-enabled={ordersEnabled} novalidate>
+        <h2>Informasi pesanan</h2>
+        <label for="customer-name">Nama pelanggan <span aria-hidden="true">*</span></label>
+        <input id="customer-name" name="customer_name" maxlength="100" autocomplete="name" required />
+        <label for="table-number">Nomor meja <span aria-hidden="true">*</span></label>
+        <input id="table-number" name="table_number" maxlength="30" required />
+        <p class="field-help">Satu QR menu digunakan untuk semua meja. Isi nomor meja secara manual.</p>
+        <label for="order-notes">Catatan pesanan (opsional)</label>
+        <textarea id="order-notes" name="notes" maxlength="500" rows="4"></textarea>
+        <p>Metode pembayaran: <strong>QRIS</strong>. Pembayaran baru dinyatakan berhasil setelah verifikasi admin.</p>
+        {!ordersEnabled && <p>Pemesanan online belum diaktifkan. Keranjang dan ringkasan dapat ditinjau, tetapi pesanan belum dapat dikirim.</p>}
+        <p class="form-feedback" role="alert" data-checkout-feedback></p>
+        <button class="button" type="submit" data-submit-order disabled>Kirim pesanan</button>
+      </form>
+      <aside class="order-panel order-totals"><h2>Periksa ringkasan</h2><div data-checkout-items><p>Memuat ringkasan…</p></div><p>Total pembayaran <strong data-checkout-total>—</strong></p><a href="/cart">Ubah keranjang</a></aside>
+    </div>
+  </section>
+</MainLayout>
+<script>import '../scripts/checkout';</script>

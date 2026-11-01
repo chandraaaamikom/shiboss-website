@@ -1,0 +1,32 @@
+---
+import type { MenuItem } from '../types/menu';
+import { MENU_CATEGORIES } from '../lib/admin/menu-categories';
+import { rupiah } from '../lib/validation/menu';
+interface Props { mode: 'create' | 'edit'; item?: MenuItem; enabled: boolean; photoEnabled: boolean }
+const { mode, item, enabled, photoEnabled } = Astro.props;
+const title = mode === 'create' ? 'Tambah produk' : 'Edit produk';
+---
+<section class="admin-panel admin-form-panel" id={mode === 'edit' ? 'edit-form' : 'add-form'} aria-labelledby={`${mode}-heading`}>
+  <div class="admin-panel-heading"><div><p class="admin-eyebrow">{enabled ? 'MANAJEMEN MENU' : 'BELUM AKTIF'}</p><h2 id={`${mode}-heading`}>{title}</h2></div></div>
+  <p>{enabled ? 'Perubahan akan disimpan ke katalog setelah validasi server.' : 'Penyimpanan menunggu grant, kebijakan database, dan pengujian terisolasi.'}</p>
+  <form class="admin-product-form" aria-label={title} data-admin-product-form data-mode={mode} data-id={item?.id ?? ''}>
+    <label>Nama produk<input name="name" type="text" value={item?.name ?? ''} required maxlength="120" autocomplete="off" /></label>
+    <label>Kategori<select name="category" required><option value="" disabled selected={!item?.category}>Pilih kategori</option>{MENU_CATEGORIES.map((category) => <option value={category} selected={item?.category === category}>{category}</option>)}</select></label>
+    <label>Harga (Rp)<input name="price" type="number" value={item?.price ?? ''} required min="1000" step="1000" inputmode="numeric" /><small data-admin-price-preview>{item?.price ? rupiah(item.price) : 'Masukkan harga dalam kelipatan Rp1.000.'}</small></label>
+    <label>Ketersediaan<select name="is_available"><option value="true" selected={item?.is_available !== false}>Tersedia</option><option value="false" selected={item?.is_available === false}>Tidak tersedia</option></select></label>
+    <label class="admin-field-wide">Deskripsi<textarea name="description" rows="3" maxlength="500">{item?.description ?? ''}</textarea></label>
+    <div class="admin-field-wide admin-photo-field">
+      <span class="admin-photo-label">Foto produk</span>
+      <div class="admin-photo-preview" data-photo-preview>
+        {item?.image_url ? <img src={item.image_url} alt={`Foto saat ini: ${item.name}`} data-photo-existing /> : <span data-photo-empty>Foto produk belum tersedia</span>}
+        <img alt="Pratinjau foto baru" data-photo-new hidden />
+      </div>
+      <input class="admin-file-input" id={`menu-photo-${mode}`} name="photo" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" aria-describedby={`menu-photo-help-${mode}`} disabled={!photoEnabled} />
+      <div class="admin-photo-actions"><label class="admin-photo-picker" for={`menu-photo-${mode}`}>Pilih foto dari perangkat</label><button type="button" data-photo-clear hidden>Batalkan pilihan</button></div>
+      <small id={`menu-photo-help-${mode}`} data-photo-info>{photoEnabled ? 'JPEG, PNG, atau WebP, maksimal 5 MB.' : 'Upload belum aktif sampai bucket, policy, grant, dan pengujian terisolasi siap.'}</small>
+    </div>
+    <p class="admin-field-wide admin-form-note">{mode === 'edit' ? 'Jika tidak memilih foto baru, foto tersimpan tidak berubah.' : 'Produk tanpa foto akan menampilkan placeholder.'}</p>
+    <p class="admin-field-wide admin-form-feedback" data-admin-form-feedback role="status" aria-live="polite" hidden></p>
+    <button class="button admin-field-wide" type="submit" disabled={!enabled}>{enabled ? 'Simpan produk' : 'Simpan produk belum aktif'}</button>
+  </form>
+</section>

@@ -1,0 +1,435 @@
+# UI SPECIFICATION
+## Website Kedai Susu Segar Shiboss
+
+**Versi:** 1.0  
+**Status:** Draft untuk implementasi  
+**Framework:** Astro  
+**Database:** Supabase PostgreSQL  
+**Referensi desain:** [Figma Shiboss](https://www.figma.com/design/9rUujHXxgyKaSYgXsuxH5s/shiboss1?node-id=0-1)  
+**Metode Pengembangan:** SDLC Incremental
+
+---
+
+## 1. Tujuan
+
+Dokumen ini menjadi pedoman perancangan dan implementasi antarmuka website Kedai Susu Segar Shiboss.
+
+Codex harus menggunakan desain Figma sebagai referensi utama. Implementasi harus mempertahankan identitas merek Shiboss, menerapkan desain responsif, dan menyediakan antarmuka yang mudah digunakan pelanggan maupun admin.
+
+Dokumen ini melengkapi `PRD.md`, `USER_FLOW.md`, `BUSINESS_RULES.md`, dan `DATABASE_ERD.md`.
+
+## 2. Prinsip Desain
+
+### 2.1 Konsistensi Identitas Merek
+
+Website harus menggunakan logo resmi Susu Segar Shiboss yang telah disediakan.
+
+Logo menampilkan kombinasi warna merah, biru tua, hitam, dan putih. Codex harus memeriksa palet warna dan nilai warna yang digunakan pada file Figma sebelum menentukan token warna final.
+
+Codex tidak boleh mengganti logo dengan logo buatan sendiri atau mengubah bentuk logo asli.
+
+### 2.2 Kesederhanaan Antarmuka
+
+Antarmuka harus membantu pelanggan menemukan produk, memahami harga, mengatur keranjang, dan menyelesaikan pesanan tanpa langkah yang tidak diperlukan.
+
+### 2.3 Konsistensi Komponen
+
+Tombol, formulir, kartu produk, navigasi, tabel, dan indikator status harus menggunakan pola desain yang konsisten.
+
+### 2.4 Desain Responsif
+
+Website harus menyesuaikan tata letak dengan ukuran layar ponsel, tablet, dan desktop.
+
+Prioritas utama halaman pelanggan adalah pengalaman penggunaan melalui ponsel karena pelanggan mengakses website melalui QR Code di meja.
+
+## 3. Referensi Desain dan Aset
+
+### 3.1 Referensi Utama
+
+Figma: https://www.figma.com/design/9rUujHXxgyKaSYgXsuxH5s/shiboss1?node-id=0-1
+
+Codex harus memeriksa frame Figma yang tersedia sebelum mengimplementasikan halaman.
+
+Jika Codex tidak dapat mengakses Figma secara langsung, Codex harus meminta screenshot atau ekspor desain yang diperlukan. Codex tidak boleh menganggap tata letak yang belum terlihat sebagai desain yang sudah disetujui.
+
+### 3.2 Logo
+
+Gunakan logo resmi Shiboss untuk identitas website.
+
+Ketentuan:
+- Pertahankan proporsi asli.
+- Jangan meregangkan logo.
+- Gunakan ukuran yang sesuai dengan ruang tampilan.
+- Pastikan logo tetap terbaca pada perangkat seluler.
+- Gunakan latar yang memiliki kontras memadai dengan logo.
+- Simpan aset logo di folder `public/images/` setelah file tersedia secara lokal.
+
+### 3.3 Gambar Produk
+
+Gambar produk harus memiliki ukuran dan rasio tampilan yang konsisten.
+
+Jika gambar produk belum tersedia, gunakan placeholder yang rapi. Jangan mengambil gambar produk acak dari internet dan menampilkannya sebagai foto resmi Shiboss.
+
+## 4. Design Tokens
+
+### 4.1 Warna
+
+Codex harus mengambil nilai warna final dari Figma. Nama token berikut menjadi struktur awal yang perlu diterapkan secara konsisten.
+
+| Token | Fungsi |
+|---|---|
+| `--color-primary` | Warna utama identitas Shiboss. |
+| `--color-primary-hover` | Warna interaksi untuk elemen utama. |
+| `--color-secondary` | Warna pendukung identitas merek. |
+| `--color-accent` | Penekanan elemen tertentu. |
+| `--color-background` | Warna latar halaman. |
+| `--color-surface` | Latar kartu, formulir, dan panel. |
+| `--color-text` | Warna teks utama. |
+| `--color-text-muted` | Warna teks sekunder. |
+| `--color-border` | Warna garis pembatas. |
+| `--color-success` | Indikator keberhasilan. |
+| `--color-warning` | Indikator menunggu atau peringatan. |
+| `--color-danger` | Indikator kesalahan atau penolakan. |
+
+Codex tidak boleh menetapkan nilai HEX final berdasarkan perkiraan gambar apabila nilai warna asli tersedia di Figma.
+
+Warna status harus tetap mudah dibedakan dan memiliki kontras yang memadai.
+
+### 4.2 Tipografi
+
+Gunakan jenis huruf yang ditetapkan dalam Figma jika tersedia.
+
+Hierarki tipografi harus membedakan:
+- Judul halaman.
+- Judul bagian.
+- Nama produk.
+- Harga produk.
+- Label formulir.
+- Isi teks.
+- Informasi bantuan.
+- Pesan kesalahan dan status.
+
+Hindari terlalu banyak jenis huruf dan ukuran yang tidak konsisten.
+
+### 4.3 Spasi dan Sudut
+
+Gunakan sistem spasi yang konsisten untuk margin, padding, jarak antarkomponen, dan jarak antarkartu.
+
+Radius tombol, kartu, dan input harus mengikuti desain Figma. Jika belum ditentukan, gunakan nilai yang konsisten dan mudah dipelihara melalui CSS variables.
+
+### 4.4 Bayangan dan Garis
+
+Gunakan bayangan dan garis pembatas secukupnya. Hindari dekorasi berlebihan yang mengurangi keterbacaan produk dan informasi pesanan.
+
+## 5. Struktur Halaman Pelanggan
+
+### 5.1 Halaman Menu Digital
+
+Halaman ini menjadi halaman utama yang pelanggan akses setelah memindai QR Code.
+
+Elemen yang diperlukan:
+- Identitas dan logo Shiboss.
+- Nama atau identitas kedai.
+- Daftar kategori produk.
+- Daftar produk yang tersedia.
+- Gambar produk jika tersedia.
+- Nama dan harga produk.
+- Tombol untuk melihat detail atau menambahkan produk.
+- Akses menuju keranjang.
+- Indikator jumlah item dalam keranjang.
+
+Halaman harus tetap mudah digunakan pada layar ponsel dengan lebar terbatas.
+
+### 5.2 Detail Produk
+
+Detail produk menampilkan informasi produk yang diperlukan pelanggan sebelum memilihnya.
+
+Elemen:
+- Gambar produk jika tersedia.
+- Nama produk.
+- Deskripsi jika tersedia.
+- Harga satuan.
+- Kontrol jumlah.
+- Tombol tambah ke keranjang.
+
+Produk yang tidak tersedia tidak boleh ditambahkan ke pesanan baru.
+
+### 5.3 Keranjang
+
+Halaman atau panel keranjang menampilkan:
+- Daftar produk yang dipilih.
+- Harga satuan.
+- Jumlah produk.
+- Subtotal setiap produk.
+- Kontrol penambahan jumlah.
+- Kontrol pengurangan jumlah.
+- Tombol penghapusan produk.
+- Total sementara.
+- Tombol menuju checkout.
+
+Jika keranjang kosong, tampilkan pesan yang jelas dan tombol untuk kembali ke menu.
+
+### 5.4 Checkout
+
+Halaman checkout menampilkan:
+- Nama pelanggan.
+- Nomor meja.
+- Catatan pesanan yang bersifat opsional.
+- Ringkasan produk.
+- Jumlah dan harga setiap produk.
+- Total pembayaran.
+- Tombol untuk mengirim pesanan.
+
+Nama pelanggan dan nomor meja wajib diisi. Nomor meja tidak diisi otomatis karena seluruh meja menggunakan satu QR Code.
+
+Metode pembayaran untuk pesanan QR Code adalah QRIS saja. Pelanggan tidak boleh memilih tunai pada alur ini.
+
+### 5.5 Instruksi Pembayaran
+
+Setelah pesanan berhasil tersimpan, website menampilkan:
+- Nomor pesanan.
+- Total pembayaran.
+- Instruksi pembayaran QRIS.
+- Status pembayaran.
+- Informasi bahwa admin akan memeriksa transaksi.
+
+Website tidak boleh menampilkan status pembayaran berhasil sebelum admin mengonfirmasi transaksi.
+
+Detail gambar QRIS, sumber gambar, dan instruksi pembayaran final harus mengikuti informasi resmi yang disediakan pemilik kedai.
+
+## 6. Struktur Dashboard Admin
+
+### 6.1 Halaman Login
+
+Elemen:
+- Identitas Shiboss.
+- Formulir login.
+- Kolom email atau identitas login sesuai implementasi autentikasi.
+- Kolom kata sandi.
+- Tombol login.
+- Pesan kesalahan autentikasi.
+
+Dashboard tidak boleh dapat diakses tanpa autentikasi dan otorisasi admin.
+
+### 6.2 Dashboard Utama
+
+Dashboard menjadi pusat navigasi untuk pengelolaan operasional.
+
+Fitur yang diperlukan:
+- Ringkasan pesanan.
+- Daftar pesanan terbaru.
+- Navigasi pengelolaan menu.
+- Navigasi pengelolaan pesanan.
+- Navigasi pembayaran dan verifikasi QRIS.
+- Indikator status pesanan.
+
+Data ringkasan harus berasal dari database. Jangan menampilkan angka contoh seolah-olah merupakan data transaksi nyata.
+
+### 6.3 Pengelolaan Menu
+
+Halaman ini menyediakan:
+- Daftar produk.
+- Pencarian produk jika diperlukan.
+- Informasi nama, kategori, harga, dan ketersediaan.
+- Formulir tambah produk.
+- Formulir edit produk.
+- Pengaturan ketersediaan produk.
+- Validasi formulir.
+- Pesan keberhasilan dan kesalahan.
+
+Produk yang memiliki riwayat transaksi sebaiknya dinonaktifkan daripada dihapus permanen.
+
+### 6.4 Pengelolaan Pesanan
+
+Daftar pesanan harus menampilkan informasi yang membantu admin mengenali pesanan.
+
+Informasi utama:
+- Nomor pesanan.
+- Waktu pesanan.
+- Nama pelanggan.
+- Nomor meja jika tersedia.
+- Asal pesanan.
+- Total pembayaran.
+- Metode pembayaran.
+- Status pembayaran.
+- Status pesanan.
+
+Admin dapat membuka detail pesanan dan memperbarui status sesuai aturan bisnis.
+
+### 6.5 Input Pesanan Kasir
+
+Halaman ini memungkinkan admin memasukkan pesanan pelanggan yang disampaikan langsung di kasir.
+
+Elemen:
+- Pemilihan produk.
+- Kontrol jumlah produk.
+- Informasi pelanggan jika diperlukan.
+- Catatan pesanan.
+- Ringkasan pesanan.
+- Total pembayaran.
+- Pilihan tunai atau QRIS.
+- Tombol simpan pesanan.
+
+Pesanan yang dibuat melalui halaman ini harus menggunakan asal `cashier`.
+
+### 6.6 Verifikasi Pembayaran QRIS
+
+Halaman atau bagian ini menampilkan pembayaran yang menunggu verifikasi.
+
+Elemen:
+- Nomor pesanan.
+- Nominal yang harus dibayar.
+- Metode pembayaran QRIS.
+- Waktu pesanan.
+- Informasi transaksi yang diperlukan untuk pemeriksaan.
+- Tombol konfirmasi pembayaran.
+- Pilihan penolakan jika transaksi tidak valid.
+- Pesan konfirmasi sebelum mengubah status.
+
+Verifikasi dilakukan secara manual oleh admin. Website tidak memerlukan fitur unggah bukti pembayaran pelanggan dan tidak boleh mengklaim telah memeriksa transaksi melalui integrasi otomatis.
+
+### 6.7 Konfirmasi Pembayaran Tunai
+
+Untuk pesanan kasir yang menggunakan tunai, admin harus dapat mencatat penerimaan uang.
+
+Sistem hanya menetapkan status `paid` setelah admin mengonfirmasi penerimaan uang.
+
+## 7. Komponen Antarmuka
+
+Gunakan komponen yang dapat dipakai ulang sesuai kebutuhan.
+
+| Komponen | Kegunaan |
+|---|---|
+| `Header` | Identitas dan navigasi halaman. |
+| `ProductCard` | Menampilkan produk pada daftar menu. |
+| `ProductDetail` | Menampilkan informasi detail produk. |
+| `QuantityControl` | Mengatur jumlah produk. |
+| `CartSummary` | Menampilkan ringkasan keranjang. |
+| `CheckoutForm` | Mengumpulkan informasi pesanan. |
+| `OrderSummary` | Menampilkan rincian dan total pesanan. |
+| `PaymentStatus` | Menampilkan status pembayaran. |
+| `OrderStatusBadge` | Menampilkan status pesanan. |
+| `AdminSidebar` | Navigasi dashboard admin. |
+| `AdminOrderTable` | Menampilkan daftar pesanan. |
+| `MenuForm` | Menambah atau mengubah data produk. |
+| `ConfirmDialog` | Meminta konfirmasi tindakan penting. |
+| `LoadingState` | Menunjukkan proses pemuatan data. |
+| `EmptyState` | Menjelaskan kondisi ketika data belum tersedia. |
+| `ErrorMessage` | Menampilkan pesan kesalahan. |
+
+Nama komponen merupakan usulan struktur. Codex dapat menyesuaikan nama file dan lokasi komponen dengan arsitektur Astro tanpa mengubah fungsi yang ditentukan.
+
+## 8. Responsivitas
+
+### 8.1 Ponsel
+
+- Utamakan tampilan satu kolom untuk menu dan checkout.
+- Gunakan tombol yang nyaman disentuh.
+- Pastikan harga, jumlah, dan total terbaca jelas.
+- Hindari tabel admin yang memaksa pengguna melakukan scroll horizontal tanpa kebutuhan.
+
+### 8.2 Tablet
+
+- Gunakan ruang tambahan untuk menampilkan beberapa kartu produk per baris.
+- Pastikan formulir dan panel tetap mudah digunakan.
+
+### 8.3 Desktop
+
+- Gunakan ruang layar secara efisien.
+- Dashboard dapat menggunakan sidebar dan area konten utama.
+- Tabel pesanan harus menampilkan informasi secara terstruktur.
+
+Breakpoint final harus mengikuti kebutuhan desain dan diuji pada ukuran layar yang berbeda.
+
+## 9. Status Visual
+
+Gunakan label status yang konsisten.
+
+Status pembayaran:
+- `pending`: menunggu konfirmasi.
+- `paid`: pembayaran terkonfirmasi.
+- `rejected`: pembayaran ditolak setelah pemeriksaan.
+
+Status pesanan:
+- `pending`: menunggu proses berikutnya.
+- `confirmed`: pesanan dikonfirmasi.
+- `preparing`: pesanan sedang disiapkan.
+- `ready`: pesanan siap diserahkan.
+- `completed`: pesanan selesai.
+- `cancelled`: pesanan dibatalkan jika aturan pembatalan disetujui.
+
+Jangan mengandalkan warna saja untuk menyampaikan status. Sertakan teks yang jelas.
+
+## 10. Aksesibilitas dan Pengalaman Pengguna
+
+1. Gunakan label yang jelas pada setiap input.
+2. Pastikan tombol memiliki teks atau nama yang menjelaskan fungsinya.
+3. Tampilkan pesan validasi di dekat input yang bermasalah.
+4. Pertahankan kontras teks dan latar yang memadai.
+5. Pastikan antarmuka dapat digunakan dengan keyboard.
+6. Berikan indikator proses saat sistem mengirim atau menyimpan data.
+7. Cegah pengiriman pesanan berulang akibat klik berulang.
+8. Berikan konfirmasi sebelum tindakan administratif yang berisiko.
+9. Pastikan layout tidak rusak ketika nama produk atau catatan panjang.
+10. Gunakan format mata uang Rupiah yang konsisten.
+
+## 11. Kondisi Loading, Kosong, dan Error
+
+Setiap halaman yang mengambil data dari database harus menangani tiga kondisi.
+
+### Loading
+
+Tampilkan indikator pemuatan saat sistem mengambil data.
+
+### Empty
+
+Tampilkan pesan yang sesuai jika belum ada produk, pesanan, atau transaksi yang perlu diperiksa.
+
+### Error
+
+Tampilkan pesan yang mudah dipahami jika permintaan gagal. Jangan menampilkan kunci rahasia, detail internal database, atau stack trace kepada pengguna.
+
+## 12. Batasan Implementasi
+
+1. Jangan mengganti desain Figma dengan desain yang tidak berhubungan.
+2. Jangan mengarang nilai HEX jika palet asli dapat diperiksa.
+3. Jangan membuat data produk atau transaksi palsu sebagai data operasional.
+4. Jangan menambahkan fitur yang belum disetujui tanpa menandainya sebagai usulan.
+5. Jangan membuat integrasi pembayaran otomatis.
+6. Jangan menyediakan pilihan tunai untuk pesanan QR Code meja.
+7. Jangan memberikan akses dashboard admin kepada pelanggan.
+8. Jangan mengubah logo resmi Shiboss.
+9. Jangan menempatkan secret key Supabase pada kode frontend.
+10. Jangan menganggap desain final jika frame Figma yang relevan belum diperiksa.
+
+## 13. Kriteria Penerimaan UI
+
+Antarmuka dinyatakan memenuhi spesifikasi jika:
+
+- Logo dan palet warna sesuai Figma.
+- Halaman menu mudah digunakan melalui ponsel.
+- Pelanggan dapat melihat produk dan mengatur keranjang.
+- Checkout meminta nama dan nomor meja.
+- Checkout QR meja hanya mendukung QRIS.
+- Dashboard admin memisahkan menu, pesanan, dan pembayaran.
+- Admin dapat memasukkan pesanan kasir.
+- Admin dapat memverifikasi QRIS secara manual.
+- Status pesanan dan pembayaran ditampilkan secara terpisah.
+- Loading, empty state, validasi, dan error tersedia.
+- Antarmuka berfungsi pada ponsel, tablet, dan desktop.
+- Semua data operasional berasal dari backend yang benar.
+
+## 14. Arahan untuk Codex
+
+1. Baca `PRD.md`, `USER_FLOW.md`, `BUSINESS_RULES.md`, dan `DATABASE_ERD.md`.
+2. Periksa frame Figma yang tersedia sebelum membuat komponen.
+3. Catat warna, tipografi, radius, spasi, dan layout yang benar-benar terlihat pada Figma.
+4. Buat design tokens terpusat.
+5. Bangun komponen yang dapat digunakan ulang.
+6. Implementasikan UI secara bertahap sesuai `INCREMENT_PLAN.md`.
+7. Jangan mengubah aturan bisnis saat memperbaiki tampilan.
+8. Uji responsivitas dan validasi formulir.
+9. Tandai bagian desain yang belum memiliki referensi.
+10. Dokumentasikan perubahan penting setelah implementasi.
+
+**Akhir dokumen.**

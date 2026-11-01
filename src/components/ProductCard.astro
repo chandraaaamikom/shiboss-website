@@ -1,0 +1,8 @@
+---
+import type { MenuItem } from '../types/menu';import { rupiah } from '../lib/validation/menu';
+interface Props{item:MenuItem} const{item}=Astro.props;
+---
+<article class="product-card" data-name={item.name.toLocaleLowerCase('id-ID')} data-category={item.category} data-price={item.price}>
+  <a class="product-image-link" href={`/menu/${item.id}`} aria-label={`Lihat detail ${item.name}`}><div class="product-media">{item.image_url?<img src={item.image_url} alt={item.name} width="640" height="480" loading="lazy"/>:<span>Foto produk belum tersedia</span>}</div></a>
+  <div class="product-content"><p class="category-label">{item.category}</p><h2><a href={`/menu/${item.id}`}>{item.name}</a></h2>{item.description && <p class="product-description">{item.description}</p>}<div class="product-bottom"><p class="price">{rupiah(item.price)}</p><button class="button quick-add" type="button" data-quick-add={item.id} aria-label={`Tambah ${item.name} ke keranjang`}>Tambah</button></div></div>
+</article>

@@ -1,0 +1,239 @@
+# USER FLOW
+## Website Kedai Susu Segar Shiboss
+
+**Versi:** 1.0  
+**Status:** Draft untuk implementasi  
+**Framework:** Astro  
+**Database:** Supabase PostgreSQL  
+**Metode Pengembangan:** SDLC Incremental
+
+## 1. Tujuan
+
+Dokumen ini menjelaskan langkah yang dilakukan pelanggan dan admin saat menggunakan website Kedai Susu Segar Shiboss.
+
+Sistem mendukung tiga alur utama:
+
+1. Pemesanan pelanggan melalui QR Code.
+2. Input pesanan pelanggan kasir oleh admin.
+3. Pengelolaan pesanan dan verifikasi pembayaran oleh admin.
+
+## 2. Aktor Sistem
+
+### 2.1 Pelanggan
+
+Pelanggan melihat menu, memilih produk, mengatur keranjang, mengisi informasi pesanan, dan mengirim pesanan melalui website.
+
+### 2.2 Admin
+
+Admin mengelola menu, memasukkan pesanan yang pelanggan sampaikan langsung di kasir, memeriksa pembayaran QRIS, mencatat pembayaran tunai, dan memperbarui status pesanan.
+
+## 3. User Flow Pemesanan Pelanggan melalui QR Code
+
+### 3.1 Alur Utama
+
+1. Pelanggan memindai QR Code yang tersedia di kedai.
+2. Website menampilkan halaman menu digital.
+3. Pelanggan melihat daftar produk yang tersedia.
+4. Pelanggan memilih produk dan membuka detailnya.
+5. Pelanggan menambahkan produk ke keranjang.
+6. Pelanggan dapat menambah jumlah, mengurangi jumlah, atau menghapus produk.
+7. Pelanggan melanjutkan ke halaman checkout.
+8. Pelanggan mengisi nama dan nomor meja.
+9. Pelanggan dapat menambahkan catatan pesanan.
+10. Website menampilkan ringkasan pesanan.
+11. Pelanggan memeriksa produk, jumlah, harga, dan total.
+12. Pelanggan mengirim pesanan.
+13. Backend memvalidasi data, harga, dan ketersediaan produk.
+14. Sistem menyimpan pesanan dan detail produknya ke database.
+15. Website menampilkan nomor pesanan dan instruksi pembayaran QRIS.
+16. Pelanggan membayar menggunakan QRIS.
+17. Sistem menampilkan status pembayaran yang menunggu verifikasi admin.
+
+### 3.2 Alur Alternatif
+
+**A. Keranjang kosong**
+
+Website menolak checkout dan meminta pelanggan memilih produk terlebih dahulu.
+
+**B. Data checkout tidak lengkap**
+
+Website menampilkan pesan kesalahan dan meminta pelanggan melengkapi nama atau nomor meja.
+
+**C. Produk tidak tersedia**
+
+Backend menolak produk yang tidak tersedia dan meminta pelanggan memperbarui keranjang.
+
+**D. Harga berubah**
+
+Backend menghitung ulang total berdasarkan harga terbaru di database. Website menampilkan total terbaru agar pelanggan dapat memeriksanya sebelum mengirim pesanan.
+
+**E. Penyimpanan gagal**
+
+Website menampilkan pesan kegagalan. Sistem tidak boleh menampilkan konfirmasi bahwa pesanan berhasil dibuat.
+
+**F. Pembayaran belum terverifikasi**
+
+Pesanan tetap tersimpan. Status pembayaran tidak berubah menjadi berhasil sebelum admin memeriksa transaksi.
+
+### 3.3 Diagram Alur Pelanggan
+
+```mermaid
+flowchart TD
+    A([Mulai]) --> B[Scan QR Code]
+    B --> C[Tampilkan Menu]
+    C --> D[Pilih Produk]
+    D --> E[Lihat Detail Produk]
+    E --> F[Tambah ke Keranjang]
+    F --> G{Ubah Keranjang?}
+    G -- Ya --> H[Tambah, Kurangi, atau Hapus]
+    H --> G
+    G -- Tidak --> I[Isi Nama dan Nomor Meja]
+    I --> J[Isi Catatan Opsional]
+    J --> K[Tampilkan Ringkasan]
+    K --> L{Pesanan Benar?}
+    L -- Tidak --> D
+    L -- Ya --> M[Validasi Backend]
+    M --> N{Data Valid?}
+    N -- Tidak --> O[Tampilkan Kesalahan]
+    O --> I
+    N -- Ya --> P[Simpan Pesanan]
+    P --> Q{Penyimpanan Berhasil?}
+    Q -- Tidak --> R[Tampilkan Pesan Gagal]
+    R --> P
+    Q -- Ya --> S[Tampilkan Instruksi QRIS]
+    S --> T[Pelanggan Membayar]
+    T --> U[Menunggu Verifikasi Admin]
+    U --> V([Selesai])
+```
+
+## 4. User Flow Pesanan melalui Kasir
+
+### 4.1 Alur Utama
+
+1. Pelanggan menyampaikan pesanan langsung kepada kasir.
+2. Admin membuka dashboard dan memilih fitur input pesanan kasir.
+3. Admin memilih produk dan menentukan jumlahnya.
+4. Admin mengisi nama pelanggan jika diperlukan.
+5. Admin memeriksa ringkasan pesanan dan total pembayaran.
+6. Admin memilih metode pembayaran tunai atau QRIS.
+7. Admin memproses pembayaran sesuai metode yang dipilih.
+8. Admin menyimpan pesanan melalui dashboard.
+9. Sistem mencatat pesanan dengan asal `cashier` dan ID admin pembuatnya.
+10. Sistem menampilkan konfirmasi penyimpanan pesanan.
+
+### 4.2 Pembayaran Tunai
+
+1. Admin menerima uang dari pelanggan.
+2. Admin mencatat penerimaan pembayaran.
+3. Sistem mencatat metode `cash` dan status pembayaran `paid`.
+4. Sistem menyimpan informasi admin yang mencatat pembayaran.
+
+### 4.3 Pembayaran QRIS
+
+1. Pelanggan membayar melalui QRIS.
+2. Admin memeriksa transaksi melalui sarana pembayaran yang digunakan kedai.
+3. Jika transaksi berhasil, admin mencatat hasil verifikasi.
+4. Sistem menyimpan metode `qris`, status `paid`, ID verifikator, dan waktu verifikasi.
+5. Jika transaksi belum dapat dipastikan, status pembayaran tetap `pending`.
+
+### 4.4 Diagram Alur Pesanan Kasir
+
+```mermaid
+flowchart TD
+    A([Mulai]) --> B[Admin Login]
+    B --> C{Login Valid?}
+    C -- Tidak --> D[Tolak Akses]
+    D --> B
+    C -- Ya --> E[Buka Dashboard]
+    E --> F[Input Pesanan Kasir]
+    F --> G[Pilih Produk dan Jumlah]
+    G --> H[Periksa Ringkasan]
+    H --> I[Pilih Metode Pembayaran]
+    I --> J{Metode Pembayaran}
+    J -- Tunai --> K[Terima dan Catat Uang]
+    J -- QRIS --> L[Periksa Transaksi QRIS]
+    L --> M{Transaksi Valid?}
+    M -- Tidak --> N[Status Tetap Pending]
+    M -- Ya --> O[Catat Pembayaran Paid]
+    K --> P[Simpan Pesanan]
+    N --> P
+    O --> P
+    P --> Q([Selesai])
+```
+
+## 5. User Flow Admin Mengelola Pesanan
+
+### 5.1 Alur Utama
+
+1. Admin membuka halaman login.
+2. Sistem memvalidasi autentikasi dan hak akses admin.
+3. Admin membuka dashboard.
+4. Admin melihat daftar pesanan.
+5. Admin memilih pesanan untuk melihat detail.
+6. Sistem menampilkan produk, jumlah, total, asal pesanan, dan status pembayaran.
+7. Admin memeriksa pembayaran QRIS yang masih menunggu verifikasi.
+8. Admin mencatat hasil pemeriksaan.
+9. Admin memperbarui status operasional pesanan sesuai proses kedai.
+10. Sistem menyimpan perubahan dan menampilkan status terbaru.
+
+### 5.2 Pengelolaan Menu
+
+1. Admin membuka halaman pengelolaan menu.
+2. Admin menambah atau memilih produk.
+3. Admin mengisi atau mengubah informasi produk.
+4. Sistem memvalidasi nama, kategori, harga, dan ketersediaan.
+5. Sistem menyimpan perubahan ke database.
+6. Website menampilkan perubahan pada menu yang tersedia untuk pelanggan.
+
+Produk yang sudah digunakan dalam transaksi sebaiknya dinonaktifkan daripada dihapus permanen.
+
+### 5.3 Diagram Alur Admin
+
+```mermaid
+flowchart TD
+    A([Mulai]) --> B[Admin Login]
+    B --> C{Autentikasi Valid?}
+    C -- Tidak --> D[Tampilkan Kesalahan]
+    D --> B
+    C -- Ya --> E[Dashboard]
+    E --> F{Pilih Fitur}
+    F -- Menu --> G[Kelola Data Menu]
+    G --> E
+    F -- Pesanan --> H[Lihat Daftar Pesanan]
+    H --> I[Pilih Detail Pesanan]
+    I --> J{Pembayaran QRIS Pending?}
+    J -- Ya --> K[Periksa Transaksi Manual]
+    K --> L{Pembayaran Valid?}
+    L -- Ya --> M[Catat Pembayaran Paid]
+    L -- Tidak --> N[Pertahankan Pending atau Catat Rejected]
+    M --> O[Perbarui Status Pesanan]
+    N --> E
+    J -- Tidak --> O
+    O --> E
+```
+
+## 6. Aturan Navigasi dan Validasi
+
+1. QR Code yang digunakan pelanggan mengarah ke halaman menu digital.
+2. Nomor meja diisi secara manual oleh pelanggan.
+3. Pesanan `table_qr` hanya menggunakan QRIS.
+4. Pesanan `cashier` mendukung tunai dan QRIS.
+5. Backend menjadi sumber validasi harga dan total pesanan.
+6. Pelanggan tidak dapat mengakses dashboard admin atau mengubah status pembayaran.
+7. Sistem mencatat asal pesanan dan waktu pembuatan.
+8. Sistem tidak menganggap pembayaran QRIS berhasil secara otomatis.
+9. Admin hanya dapat melakukan operasi administratif setelah autentikasi dan otorisasi berhasil.
+10. Pesanan dan detail produk harus tersimpan secara konsisten.
+
+## 7. Keputusan yang Belum Ditetapkan
+
+Hal berikut memerlukan persetujuan pemilik proyek:
+
+- Pembatalan pesanan oleh pelanggan.
+- Pengelolaan stok produk.
+- Aturan konfirmasi pesanan sebelum persiapan.
+- Fitur pelanggan untuk melacak pesanan.
+- Prosedur pengembalian uang.
+- Aturan perubahan pesanan setelah dikirim.
+
+Implementasi tidak boleh mengasumsikan keputusan tersebut sebelum pemilik proyek menyetujuinya.

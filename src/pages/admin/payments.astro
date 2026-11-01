@@ -1,0 +1,592 @@
+
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { createAdminClient } from '../../lib/admin/supabase';
+
+const identity = Astro.locals.admin!;
+
+const client = createAdminClient({
+  request: Astro.request,
+  cookies: Astro.cookies,
+});
+
+type PaymentRow = {
+  id: string;
+  order_id: string;
+  payment_method: string;
+  amount: number;
+  payment_status: 'pending' | 'paid' | 'rejected';
+  verified_at: string | null;
+  created_at: string;
+  proof_path: string | null;
+  proof_uploaded_at: string | null;
+  proof_signed_url: string | null;
+  orders: {
+    order_number: string;
+    customer_name: string;
+    table_number: string | null;
+    order_status: string;
+    total_amount: number;
+  } | null;
+};
+
+let error: unknown = null;
+let payments: PaymentRow[] = [];
+
+if (!client) {
+  error = new Error('Admin client unavailable');
+} else {
+  try {
+    const result = await client
+      .from('payments')
+      .select(`
+        id,
+        order_id,
+        payment_method,
+        amount,
+        payment_status,
+        verified_at,
+        created_at,
+        proof_path,
+        proof_uploaded_at,
+        orders (
+          order_number,
+          customer_name,
+          table_number,
+          order_status,
+          total_amount
+        )
+      `)
+      .eq('payment_method', 'qris')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (result.error || !result.data) {
+      error = result.error ?? new Error('Data pembayaran tidak tersedia.');
+    } else {
+      const rows = result.data as unknown as PaymentRow[];
+
+      payments = await Promise.all(
+        rows.map(async (payment) => {
+          let signedUrl: string | null = null;
+
+          if (payment.proof_path) {
+            const { data, error: signedError } =
+              await client.storage
+                .from('payment-proofs')
+                .createSignedUrl(payment.proof_path, 300);
+
+            if (!signedError && data?.signedUrl) {
+              signedUrl = data.signedUrl;
+            } else {
+              console.error(
+                '[admin-payments] Failed to create signed URL',
+                signedError
+              );
+            }
+          }
+
+          return {
+            ...payment,
+            proof_signed_url: signedUrl,
+          };
+        })
+      );
+    }
+  } catch (err) {
+    error = err;
+  }
+}
+
+const rupiah = (value: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(Number(value));
+
+const date = (value: string) =>
+  new Date(value).toLocaleString('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Jakarta',
+  });
+---
+
+<AdminLayout title="Pembayaran QRIS" identity={identity}>
+
+  <div class="admin-page-head admin-page-banner">
+    <div>
+      <h1>Pembayaran QRIS</h1>
+      <p>
+        Periksa bukti transfer pelanggan sebelum menerima atau menolak pembayaran.
+      </p>
+    </div>
+
+    <span class="admin-title-count">
+      {error ? 'Data tidak tersedia' : `${payments.length} pembayaran`}
+    </span>
+  </div>
+
+  {error ? (
+    <section class="admin-panel admin-empty-state">
+      <h2>Data pembayaran belum dapat dimuat</h2>
+      <p>
+        Periksa koneksi Supabase, relasi orders, RLS,
+        dan hak akses admin.
+      </p>
+
+      <a href="/admin/payments" class="button admin-outline-button">
+        Coba lagi
+      </a>
+    </section>
+
+  ) : payments.length === 0 ? (
+    <section class="admin-panel admin-empty-state">
+      <h2>Belum ada pembayaran QRIS</h2>
+      <p>
+        Pembayaran akan muncul setelah pelanggan membuat pesanan.
+      </p>
+    </section>
+
+  ) : (
+    <div class="payment-list">
+
+      {payments.map((payment) => (
+        <article class="admin-panel payment-card" data-payment-card>
+
+          <!-- HEADER -->
+          <div class="payment-heading">
+            <div>
+              <h2>
+                {payment.orders?.order_number ?? 'Pesanan tidak ditemukan'}
+              </h2>
+
+              <p>{date(payment.created_at)}</p>
+            </div>
+
+            <span class={`payment-status status-${payment.payment_status}`}>
+              {payment.payment_status.toUpperCase()}
+            </span>
+          </div>
+
+          <!-- INFORMASI PESANAN -->
+          <div class="payment-information">
+            <div>
+              <span>Pelanggan</span>
+              <strong>
+                {payment.orders?.customer_name ?? '—'}
+              </strong>
+            </div>
+
+            <div>
+              <span>Nomor meja</span>
+              <strong>
+                {payment.orders?.table_number ?? '—'}
+              </strong>
+            </div>
+
+            <div>
+              <span>Nominal pembayaran</span>
+              <strong class="payment-amount">
+                {rupiah(payment.amount)}
+              </strong>
+            </div>
+
+            <div>
+              <span>Status pesanan</span>
+              <strong>
+                {payment.orders?.order_status ?? '—'}
+              </strong>
+            </div>
+
+            <div>
+              <span>Waktu pesanan</span>
+              <strong>{date(payment.created_at)}</strong>
+            </div>
+
+            <div>
+              <span>Waktu upload bukti</span>
+              <strong>
+                {payment.proof_uploaded_at
+                  ? date(payment.proof_uploaded_at)
+                  : 'Belum upload'}
+              </strong>
+            </div>
+
+            <div>
+              <span>Verifikasi terakhir</span>
+              <strong>
+                {payment.verified_at
+                  ? date(payment.verified_at)
+                  : 'Belum diverifikasi'}
+              </strong>
+            </div>
+          </div>
+
+          <!-- BUKTI PEMBAYARAN -->
+          <section class="payment-proof">
+            <div class="proof-heading">
+              <div>
+                <h3>Bukti transfer pelanggan</h3>
+                <p>
+                  Periksa nominal dan detail transaksi sebelum melakukan verifikasi.
+                </p>
+              </div>
+            </div>
+
+            {payment.proof_signed_url ? (
+              <div class="proof-preview">
+
+                <a
+                  href={payment.proof_signed_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="proof-image-link"
+                  aria-label="Buka bukti transfer ukuran penuh"
+                >
+                  <img
+                    src={payment.proof_signed_url}
+                    alt={`Bukti pembayaran ${payment.orders?.order_number ?? ''}`}
+                    loading="lazy"
+                  />
+                </a>
+
+                <a
+                  href={payment.proof_signed_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="button admin-outline-button proof-open"
+                >
+                  Lihat bukti ukuran penuh
+                </a>
+
+              </div>
+            ) : (
+              <div class="proof-empty">
+                <span class="proof-icon">▧</span>
+
+                <strong>
+                  {payment.proof_path
+                    ? 'Bukti tersimpan, tetapi gambar belum dapat dibuka.'
+                    : 'Pelanggan belum mengunggah bukti pembayaran.'}
+                </strong>
+
+                <p>
+                  {payment.proof_path
+                    ? 'Periksa izin Storage dan konfigurasi signed URL Supabase.'
+                    : 'Bukti pembayaran akan muncul setelah pelanggan mengunggah foto transaksi.'}
+                </p>
+              </div>
+            )}
+          </section>
+
+          <!-- TOMBOL VERIFIKASI -->
+          {payment.payment_status === 'pending' && payment.proof_signed_url ? (
+            <div class="payment-actions">
+
+              <button
+                type="button"
+                class="button"
+                data-decision="paid"
+                data-payment-id={payment.id}
+              >
+                Terima pembayaran
+              </button>
+
+              <button
+                type="button"
+                class="button admin-outline-button"
+                data-decision="rejected"
+                data-payment-id={payment.id}
+              >
+                Tolak pembayaran
+              </button>
+
+            </div>
+
+          ) : payment.payment_status === 'pending' ? (
+            <p class="payment-locked">
+              Verifikasi belum tersedia. Pastikan pelanggan sudah mengunggah bukti
+              dan admin dapat melihat gambar tersebut.
+            </p>
+
+          ) : (
+            <p class="payment-locked">
+              Pembayaran sudah diverifikasi. Status ini tidak dapat diubah
+              dari halaman ini.
+            </p>
+          )}
+
+          <p
+            class="payment-feedback"
+            role="status"
+            aria-live="polite"
+          ></p>
+
+        </article>
+      ))}
+
+    </div>
+  )}
+
+</AdminLayout>
+
+<style>
+.payment-list {
+  display: grid;
+  gap: 18px;
+}
+
+.payment-card {
+  display: grid;
+  gap: 20px;
+}
+
+.payment-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.payment-heading h2 {
+  margin: 0 0 5px;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.payment-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.payment-status {
+  font-size: .75rem;
+  font-weight: 800;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.status-pending {
+  color: #8a5a00;
+}
+
+.status-paid {
+  color: #167044;
+}
+
+.status-rejected {
+  color: #a52a2a;
+}
+
+.payment-information {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+
+.payment-information div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.payment-information span {
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.payment-information strong {
+  overflow-wrap: anywhere;
+}
+
+.payment-amount {
+  color: var(--primary);
+  font-size: 1.15rem;
+}
+
+.payment-proof {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.proof-heading h3 {
+  margin: 0 0 5px;
+  font-size: 1rem;
+}
+
+.proof-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .88rem;
+}
+
+.proof-preview {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.proof-image-link {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.proof-image-link img {
+  display: block;
+  width: 100%;
+  max-height: 620px;
+  object-fit: contain;
+}
+
+.proof-open {
+  text-decoration: none;
+}
+
+.proof-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 9px;
+  padding: 32px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.proof-icon {
+  font-size: 2rem;
+}
+
+.proof-empty strong {
+  font-size: .95rem;
+}
+
+.proof-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+.payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.payment-feedback,
+.payment-locked {
+  margin: 0;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+@media (max-width: 600px) {
+  .payment-information {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-heading {
+    align-items: flex-start;
+  }
+
+  .payment-actions {
+    display: grid;
+  }
+
+  .payment-actions button {
+    width: 100%;
+  }
+}
+</style>
+
+<script>
+  const cards = document.querySelectorAll<HTMLElement>(
+    '[data-payment-card]'
+  );
+
+  for (const card of cards) {
+    const buttons = card.querySelectorAll<HTMLButtonElement>(
+      '[data-decision]'
+    );
+
+    const feedback = card.querySelector<HTMLElement>(
+      '.payment-feedback'
+    );
+
+    for (const button of buttons) {
+      button.addEventListener('click', async () => {
+        const decision = button.dataset.decision;
+        const paymentId = button.dataset.paymentId;
+
+        if (
+          !feedback ||
+          !paymentId ||
+          (decision !== 'paid' && decision !== 'rejected')
+        ) {
+          return;
+        }
+
+        const confirmText = decision === 'paid'
+          ? 'Konfirmasi pembayaran ini sebagai diterima?'
+          : 'Tolak pembayaran ini?';
+
+        if (!window.confirm(confirmText)) return;
+
+        buttons.forEach((item) => {
+          item.disabled = true;
+        });
+
+        feedback.textContent = 'Memproses verifikasi...';
+
+        try {
+          const response = await fetch(
+            `/api/admin/payments/${encodeURIComponent(paymentId)}/verify`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ decision }),
+            }
+          );
+
+          const result = await response.json() as {
+            status?: string;
+            message?: string;
+          };
+
+          if (!response.ok || result.status !== 'ready') {
+            throw new Error(
+              result.message ?? 'Verifikasi gagal.'
+            );
+          }
+
+          feedback.textContent =
+            'Verifikasi berhasil. Memperbarui halaman...';
+
+          window.location.reload();
+
+        } catch (error) {
+          feedback.textContent = error instanceof Error
+            ? error.message
+            : 'Verifikasi gagal.';
+
+          buttons.forEach((item) => {
+            item.disabled = false;
+          });
+        }
+      });
+    }
+  }
+</script>

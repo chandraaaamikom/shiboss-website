@@ -1,0 +1,62 @@
+---
+import '../styles/global.css';
+import '../styles/reference-v2.css';
+import '../styles/admin.css';
+import type { AdminIdentity } from '../lib/admin/access';
+
+interface Props { title: string; identity?: AdminIdentity; login?: boolean }
+const { title, identity, login = false } = Astro.props;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const links = [
+  { href: '/admin', label: 'Dashboard', icon: '▦' },
+  { href: '/admin/menu', label: 'Manajemen Menu', icon: '☷' },
+  { href: '/admin/orders', label: 'Pesanan', icon: '▤' },
+  { href: '/admin/payments', label: 'Pembayaran QRIS', icon: '▧' },
+];
+const currentLabel = links.find((link) => link.href === path)?.label ?? title;
+const initials = (identity?.fullName || identity?.email || 'A').trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toLocaleUpperCase('id')).join('');
+---
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <title>{title} | Admin Shiboss</title>
+  </head>
+  <body class={login ? 'admin-login-body' : 'admin-body'}>
+    <a class="skip-link" href="#admin-main">Langsung ke konten</a>
+    {login ? (
+      <main id="admin-main" class="admin-login-main"><slot /></main>
+    ) : (
+      <div class="admin-shell">
+        <button class="admin-nav-backdrop" type="button" data-admin-nav-close aria-label="Tutup navigasi" hidden></button>
+        <aside class="admin-sidebar" id="admin-sidebar" aria-label="Navigasi admin">
+          <a class="admin-brand" href="/admin" aria-label="Admin Shiboss, ringkasan">
+            <span class="admin-brand-mark" aria-hidden="true">S</span><span class="admin-brand-copy"><strong>SHIBOSS <small>ADMIN</small></strong><span>Kedai Susu Segar</span></span>
+          </a>
+          <div class="admin-location"><strong>Kedai Susu Segar Shiboss</strong><span>Panel pengelolaan kedai</span></div>
+          <p class="admin-nav-caption">MENU UTAMA</p>
+          <nav class="admin-nav" aria-label="Halaman admin">
+            {links.map(({ href, label, icon }) => <a href={href} aria-current={path === href ? 'page' : undefined}><span class="admin-nav-icon" aria-hidden="true">{icon}</span>{label}</a>)}
+          </nav>
+          <p class="admin-nav-caption">TAUTAN EKSTERNAL</p>
+          <a class="admin-customer-link" href="/">↗ <span>Web Pesanan Pelanggan</span></a>
+          <div class="admin-sidebar-foot"><div class="admin-sidebar-user"><span class="admin-avatar" aria-hidden="true">{initials}</span><span><strong>{identity?.fullName || 'Admin'}</strong><small>{identity?.email}</small></span></div><form action="/api/admin/logout" method="post"><button type="submit">Keluar dari Dashboard</button></form></div>
+        </aside>
+        <div class="admin-workspace">
+          <header class="admin-topbar">
+            <button class="admin-nav-toggle" type="button" data-admin-nav-toggle aria-controls="admin-sidebar" aria-expanded="false" aria-label="Buka navigasi">☰</button>
+            <div class="admin-topbar-title"><span class="admin-topbar-label">Shiboss Admin <span aria-hidden="true">/</span> {currentLabel}</span><strong>{currentLabel}</strong></div>
+            <div class="admin-account"><span class="admin-avatar" aria-hidden="true">{initials}</span><span><strong>{identity?.fullName || 'Admin'}</strong><small>{identity?.email}</small></span></div>
+          </header>
+          <main id="admin-main" class="admin-main"><slot /></main>
+        </div>
+      </div>
+    )}
+    {!login && <script>import '../scripts/admin-nav';</script>}
+  </body>
+</html>

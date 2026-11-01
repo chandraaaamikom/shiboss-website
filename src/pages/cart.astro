@@ -1,0 +1,14 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+<MainLayout title="Keranjang">
+  <section class="container order-page">
+    <p class="breadcrumb"><a href="/menu">Menu</a> / Keranjang</p>
+    <div class="page-heading"><h1>Keranjang pesananmu</h1><p>Periksa produk dan jumlah sebelum melanjutkan.</p></div>
+    <div class="order-layout">
+      <div class="order-panel"><div data-cart-items><p>Memuat keranjang…</p></div><p class="form-feedback" role="status" data-cart-feedback></p></div>
+      <aside class="order-panel order-totals"><h2>Ringkasan pesanan</h2><p>Total sementara <strong data-cart-total>—</strong></p><a class="button" href="/checkout" data-checkout-link aria-disabled="true">Lanjut ke checkout</a><p>Harga dan ketersediaan akan diperiksa kembali sebelum pesanan disimpan.</p></aside>
+    </div>
+  </section>
+</MainLayout>
+<script>import '../scripts/cart-page';</script>

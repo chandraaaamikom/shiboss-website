@@ -1,0 +1,6 @@
+---
+interface Props{status:'unconfigured'|'error'|'empty'} const{status}=Astro.props;
+const title=status==='error'?'Menu belum berhasil dimuat':status==='empty'?'Belum ada menu tersedia':'Menu belum tersedia';
+const message=status==='error'?'Ada kendala saat mengambil menu. Silakan coba lagi.':'Silakan tanyakan menu yang tersedia kepada staf kedai.';
+---
+<section class="menu-state" role={status==='error'?'alert':'status'}><span class="state-line" aria-hidden="true"></span><h2>{title}</h2><p>{message}</p><a class="button" href="/menu">Muat ulang menu</a></section>

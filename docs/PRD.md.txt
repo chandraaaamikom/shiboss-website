@@ -1,0 +1,257 @@
+# PRODUCT REQUIREMENTS DOCUMENT (PRD)
+## Website Pemesanan Kedai Susu Segar Shiboss
+
+Versi 1.0 Draft  
+Status Draft untuk validasi kebutuhan  
+Metode Pengembangan SDLC Incremental  
+Framework Astro  
+Database Supabase PostgreSQL  
+Lingkungan Pengembangan Windows
+
+## 1. Ringkasan Produk
+
+Website Kedai Susu Segar Shiboss merupakan sistem pemesanan digital yang mendukung kegiatan operasional kedai yang sudah berjalan. Sistem menyediakan katalog produk, keranjang, formulir pemesanan, penyimpanan data pesanan, dan dashboard admin.
+
+Produk yang dijual mencakup susu segar, minuman lainnya, dan makanan pendamping. Kedai menggunakan penjualan langsung sebagai saluran penjualan dan TikTok sebagai saluran promosi aktif.
+
+Website akan mendukung akses menu melalui QR Code. Sistem juga akan menyediakan proses pembayaran tunai dan QRIS sesuai kebutuhan operasional. Admin melakukan verifikasi pembayaran QRIS secara manual.
+
+## 2. Latar Belakang
+
+Proses penjualan Kedai Susu Segar Shiboss saat ini berlangsung secara offline. Pengembangan website bertujuan menyediakan saluran digital untuk melihat menu dan mengirim pesanan kepada kedai.
+
+Sistem perlu memudahkan pelanggan memilih produk, mengatur jumlah pesanan, mengisi informasi pemesanan, dan melihat ringkasan sebelum mengirim pesanan. Admin membutuhkan fasilitas untuk mengelola menu, memeriksa pesanan, memperbarui status pesanan, dan memverifikasi pembayaran.
+
+Pengembangan dilakukan secara bertahap agar setiap bagian dapat diuji sebelum tim melanjutkan ke tahap berikutnya.
+
+## 3. Tujuan Produk
+
+1. Menyediakan katalog menu digital yang mudah diakses pelanggan.
+2. Memungkinkan pelanggan memilih produk dan mengelola keranjang.
+3. Menyediakan formulir untuk nama pelanggan, nomor meja, dan catatan.
+4. Menyimpan pesanan ke Supabase PostgreSQL.
+5. Menyediakan dashboard admin untuk mengelola menu dan pesanan.
+6. Mendukung pencatatan metode pembayaran tunai dan QRIS.
+7. Menyediakan proses verifikasi pembayaran QRIS secara manual.
+8. Menghasilkan sistem yang responsif, aman, dan mudah diuji.
+
+## 4. Target Pengguna
+
+### 4.1 Pelanggan
+
+Pelanggan mengakses menu, melihat detail produk, memilih produk, mengatur keranjang, mengisi informasi pemesanan, dan mengirim pesanan.
+
+### 4.2 Admin
+
+Admin mengakses dashboard melalui proses autentikasi, mengelola data menu, melihat pesanan, memperbarui status pesanan, dan memeriksa pembayaran QRIS.
+
+### 4.3 Pengelola Kedai
+
+Pengelola kedai menggunakan data menu dan pesanan untuk mendukung operasional. Peran khusus pengelola yang berbeda dari admin belum ditetapkan.
+
+## 5. Ruang Lingkup Produk
+
+### 5.1 Fitur yang termasuk dalam ruang lingkup
+
+- Katalog menu digital.
+- Detail produk.
+- Keranjang pesanan.
+- Penambahan, pengurangan, dan penghapusan produk dari keranjang.
+- Formulir nama pelanggan, nomor meja, dan catatan.
+- Ringkasan pesanan dan total harga.
+- Penyimpanan pesanan ke database.
+- Login admin.
+- Pengelolaan data menu.
+- Pengelolaan data pesanan.
+- Pembaruan status pesanan.
+- Pencatatan metode pembayaran.
+- Verifikasi pembayaran QRIS secara manual.
+- Pengujian fungsi dan integrasi sistem.
+- Tampilan responsif pada perangkat desktop dan ponsel.
+
+### 5.2 Fitur di luar ruang lingkup awal
+
+- Pembayaran QRIS otomatis melalui payment gateway.
+- Program loyalitas pelanggan.
+- Integrasi pengiriman pihak ketiga.
+- Pengelolaan banyak cabang.
+- Analitik penjualan lanjutan.
+- Aplikasi mobile native.
+
+Fitur di luar ruang lingkup dapat dipertimbangkan setelah kebutuhan inti berjalan dengan baik.
+
+## 6. Kebutuhan Fungsional
+
+FR-01. Akses menu  
+Sistem menampilkan halaman menu yang dapat diakses melalui website dan QR Code.
+
+FR-02. Daftar produk  
+Sistem menampilkan nama, harga, gambar jika tersedia, dan informasi produk.
+
+FR-03. Detail produk  
+Pelanggan dapat melihat informasi produk sebelum menambahkannya ke keranjang.
+
+FR-04. Pengelolaan keranjang  
+Pelanggan dapat menambah, mengurangi, dan menghapus produk dari keranjang. Sistem menghitung subtotal dan total secara konsisten.
+
+FR-05. Informasi pemesanan  
+Sistem menyediakan kolom nama pelanggan, nomor meja, dan catatan.
+
+FR-06. Validasi pesanan  
+Sistem memeriksa kelengkapan data dan isi keranjang sebelum menerima pesanan. Sistem menampilkan pesan yang jelas jika data tidak valid.
+
+FR-07. Ringkasan pesanan  
+Sistem menampilkan daftar produk, jumlah, harga, subtotal, dan total sebelum pelanggan mengirim pesanan.
+
+FR-08. Penyimpanan pesanan  
+Sistem menyimpan pesanan dan detail produknya ke Supabase PostgreSQL. Sistem menampilkan konfirmasi hanya setelah penyimpanan berhasil.
+
+FR-09. Autentikasi admin  
+Sistem membatasi dashboard dan operasi administratif kepada admin yang memiliki akses sah.
+
+FR-10. Pengelolaan menu  
+Admin dapat menambah, melihat, mengubah, dan menghapus atau menonaktifkan produk sesuai aturan data.
+
+FR-11. Pengelolaan pesanan  
+Admin dapat melihat daftar pesanan beserta informasi produk, pelanggan, total, dan statusnya.
+
+FR-12. Status pesanan  
+Admin dapat memperbarui status pesanan. Daftar status dan aturan perpindahannya perlu ditetapkan sebelum implementasi.
+
+FR-13. Metode pembayaran  
+Sistem mendukung pencatatan metode pembayaran tunai dan QRIS.
+
+FR-14. Verifikasi QRIS manual  
+Admin dapat mencatat hasil pemeriksaan pembayaran QRIS. Sistem tidak menyatakan pembayaran berhasil hanya karena pelanggan memilih metode QRIS.
+
+FR-15. Penanganan kesalahan  
+Sistem menampilkan pesan jika terjadi kesalahan validasi, koneksi, atau penyimpanan data.
+
+## 7. Kebutuhan Nonfungsional
+
+NFR-01. Kemudahan penggunaan  
+Antarmuka harus mudah dipahami oleh pelanggan dan admin.
+
+NFR-02. Responsivitas  
+Halaman harus beradaptasi dengan ukuran layar ponsel dan desktop.
+
+NFR-03. Keamanan akses  
+Sistem membatasi fungsi admin melalui autentikasi dan otorisasi.
+
+NFR-04. Keamanan database  
+Supabase Row Level Security (RLS), validasi server, dan kebijakan akses harus melindungi data dari akses yang tidak sah.
+
+NFR-05. Integritas data  
+Sistem menjaga konsistensi harga, jumlah produk, total pesanan, dan relasi antara pesanan dengan detailnya.
+
+NFR-06. Pemeliharaan  
+Kode harus memiliki struktur yang jelas, komponen yang dapat digunakan kembali, dan dokumentasi pengaturan proyek.
+
+NFR-07. Keandalan  
+Sistem harus menangani kegagalan penyimpanan dan tidak menampilkan konfirmasi keberhasilan palsu.
+
+NFR-08. Kompatibilitas  
+Sistem harus dapat diuji pada browser modern dan perangkat dengan ukuran layar berbeda.
+
+## 8. Rencana Pengembangan Incremental
+
+### Increment 1 Menu Digital
+
+- Inisialisasi proyek Astro.
+- Penerapan identitas visual Shiboss.
+- Pembuatan halaman utama.
+- Pembuatan katalog dan detail produk.
+- Implementasi akses menu melalui QR Code.
+- Pengujian tampilan dan navigasi.
+
+Kriteria selesai pelanggan dapat membuka menu dan melihat detail produk melalui tampilan responsif.
+
+### Increment 2 Pemesanan Menu
+
+- Implementasi keranjang.
+- Perhitungan subtotal dan total.
+- Formulir data pelanggan.
+- Validasi pesanan.
+- Integrasi Supabase PostgreSQL.
+- Penyimpanan pesanan dan detail pesanan.
+- Pengujian alur pemesanan.
+
+Kriteria selesai pelanggan dapat mengirim pesanan valid dan sistem menyimpan data secara konsisten.
+
+### Increment 3 Administrasi dan Pembayaran
+
+- Implementasi login admin.
+- Implementasi dashboard.
+- Pengelolaan menu.
+- Pengelolaan pesanan.
+- Pembaruan status pesanan.
+- Pencatatan pembayaran tunai dan QRIS.
+- Verifikasi QRIS secara manual.
+- Pengujian hak akses dan proses administrasi.
+
+Kriteria selesai admin dapat mengelola menu dan pesanan serta mencatat hasil verifikasi pembayaran sesuai aturan.
+
+### Tahap pengujian dan finalisasi
+
+- Pengujian black-box.
+- Pengujian integrasi database.
+- Pengujian validasi formulir.
+- Pengujian responsivitas.
+- Pengujian keamanan akses.
+- Perbaikan bug.
+- Dokumentasi dan persiapan implementasi.
+
+## 9. Kriteria Keberhasilan Produk
+
+1. Pelanggan dapat mengakses dan melihat katalog menu.
+2. Pelanggan dapat mengelola keranjang dengan benar.
+3. Sistem menolak data pesanan yang tidak valid.
+4. Sistem menyimpan pesanan dan detailnya secara konsisten.
+5. Admin yang berwenang dapat mengakses dashboard.
+6. Admin dapat mengelola menu dan pesanan.
+7. Admin dapat mencatat hasil verifikasi QRIS secara manual.
+8. Sistem membatasi akses ke data dan fungsi administratif.
+9. Fitur utama lulus pengujian yang telah ditentukan.
+
+## 10. Asumsi dan Keputusan yang Belum Ditetapkan
+
+Hal-hal berikut harus dikonfirmasi sebelum implementasi penuh
+
+- Apakah pelanggan harus mengunggah bukti pembayaran QRIS.
+- Kapan pelanggan memilih metode pembayaran.
+- Daftar status pesanan dan aturan transisinya.
+- Apakah pesanan dapat dibatalkan.
+- Apakah nomor meja harus selalu diisi.
+- Apakah sistem memerlukan stok produk.
+- Apakah pelanggan membutuhkan nomor pesanan untuk memeriksa status.
+- Detail warna, tipografi, dan tata letak dari seluruh frame Figma.
+- Kebijakan penyimpanan data pelanggan dan pesanan.
+- Strategi deployment dan konfigurasi domain.
+
+Keputusan tersebut tidak boleh diasumsikan oleh implementasi tanpa persetujuan pemilik proyek.
+
+## 11. Teknologi
+
+- Astro sebagai framework website.
+- Supabase PostgreSQL sebagai database.
+- Supabase Auth atau mekanisme autentikasi yang sesuai untuk admin.
+- Server-side endpoints atau mekanisme backend yang sesuai untuk validasi dan operasi database.
+- Git untuk pengelolaan versi.
+- Pengujian lokal pada Windows sebelum deployment.
+
+Detail pustaka tambahan akan diputuskan berdasarkan kebutuhan desain dan arsitektur.
+
+## 12. Dokumen Pendukung
+
+PRD ini menjadi dasar penyusunan dokumen lanjutan
+
+1. User Stories.
+2. User Flow.
+3. Flowchart Sistem.
+4. UI Specification dan Design System.
+5. ERD dan Database Specification.
+6. Technical Specification.
+7. Security Specification.
+8. Acceptance Criteria dan Test Plan.
+9. Increment Implementation Plan.
+10. README dan dokumentasi deployment.

@@ -1,0 +1,546 @@
+
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { createAdminClient } from '../../lib/admin/supabase';
+import { loadAdminOrders } from '../../lib/admin/order-service';
+
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+
+const identity = Astro.locals.admin!;
+
+const client = createAdminClient({
+  request: Astro.request,
+  cookies: Astro.cookies,
+});
+
+const result = client
+  ? await loadAdminOrders(client)
+  : { status: 'error' as const, orders: [] };
+
+const orders = result.status === 'ready' ? result.orders : [];
+
+const formatRupiah = (value: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const formatDate = (value: string) =>
+  new Date(value).toLocaleString('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Jakarta',
+  });
+
+const orderLabels: Record<string, string> = {
+  pending: 'Menunggu',
+  confirmed: 'Dikonfirmasi',
+  cancelled: 'Dibatalkan',
+};
+
+const paymentLabels: Record<string, string> = {
+  pending: 'Menunggu verifikasi',
+  paid: 'Dibayar',
+  rejected: 'Ditolak',
+};
+---
+
+<AdminLayout title="Pesanan" identity={identity}>
+  <div class="admin-page-head admin-page-banner">
+    <div>
+      <h1>Manajemen Pesanan</h1>
+      <p>Pantau pesanan dan status pembayaran pelanggan Shiboss.</p>
+    </div>
+
+    <span class="admin-title-count">
+      {result.status === 'ready'
+        ? `${orders.length} pesanan`
+        : 'Data tidak tersedia'}
+    </span>
+  </div>
+
+  {result.status === 'error' ? (
+    <section class="admin-panel admin-empty-state">
+      <h2>Data pesanan belum dapat dimuat</h2>
+      <p>
+        Periksa koneksi Supabase, sesi admin, izin database,
+        dan struktur tabel.
+      </p>
+      <a class="button admin-outline-button" href="/admin/orders">
+        Coba lagi
+      </a>
+    </section>
+  ) : orders.length === 0 ? (
+    <section class="admin-panel admin-empty-state">
+      <h2>Belum ada pesanan</h2>
+      <p>
+        Pesanan akan muncul setelah transaksi berhasil dibuat.
+      </p>
+    </section>
+  ) : (
+    <div class="admin-orders-list">
+      {orders.map((order) => (
+        <article class="admin-panel admin-order-card">
+          <div class="admin-panel-heading">
+            <div>
+              <h2>{order.order_number}</h2>
+              <p>{formatDate(order.created_at)}</p>
+            </div>
+
+            <span class="admin-status">
+              {orderLabels[order.order_status] ?? order.order_status}
+            </span>
+          </div>
+
+          <div class="admin-order-summary">
+            <p>
+              <strong>Pelanggan:</strong> {order.customer_name}
+            </p>
+
+            <p>
+              <strong>Meja:</strong>{' '}
+              {order.table_number ?? 'Tidak ditentukan'}
+            </p>
+
+            <p>
+              <strong>Sumber:</strong>{' '}
+              {order.order_source === 'table_qr'
+                ? 'QR Meja'
+                : 'Kasir'}
+            </p>
+
+            <p>
+              <strong>Total:</strong>{' '}
+              {formatRupiah(Number(order.total_amount))}
+            </p>
+          </div>
+
+          <div class="admin-order-items">
+            <h3>Rincian pesanan</h3>
+
+            {order.order_items.map((item) => (
+              <div class="admin-order-item">
+                <span>
+                  {item.product_name} × {item.quantity}
+                </span>
+
+                <span>
+                  {formatRupiah(Number(item.subtotal ?? 0))}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {order.notes && (
+            <p>
+              <strong>Catatan:</strong> {order.notes}
+            </p>
+          )}
+
+          <div class="admin-order-payment">
+            <h3>Pembayaran</h3>
+
+            {order.payments.length === 0 ? (
+              <p>Data pembayaran tidak ditemukan.</p>
+            ) : (
+              order.payments.map((payment) => (
+                <section
+                  class="payment-card"
+                  data-payment-card
+                  data-payment-id={payment.id}
+                >
+                  <div class="admin-order-item">
+                    <span>
+                      <strong>
+                        {payment.payment_method.toUpperCase()}
+                      </strong>
+                    </span>
+
+                    <span>
+                      {formatRupiah(Number(payment.amount))}
+                    </span>
+                  </div>
+
+                  <div class="payment-status-row">
+                    <span>Status pembayaran:</span>
+
+                    <strong>
+                      {paymentLabels[payment.payment_status]}
+                    </strong>
+                  </div>
+
+                  {payment.verified_at && (
+                    <p class="payment-meta">
+                      Diverifikasi: {formatDate(payment.verified_at)}
+                    </p>
+                  )}
+
+                  {payment.proof_uploaded_at && (
+                    <p class="payment-meta">
+                      Bukti diunggah:{' '}
+                      {formatDate(payment.proof_uploaded_at)}
+                    </p>
+                  )}
+
+                  {payment.payment_method === 'qris' && (
+                    <div class="payment-proof">
+                      <h4>Bukti pembayaran QRIS</h4>
+
+                      {payment.proof_signed_url ? (
+                        <>
+                          <a
+                            href={payment.proof_signed_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="proof-link"
+                          >
+                            <img
+                              src={payment.proof_signed_url}
+                              alt={`Bukti pembayaran ${order.order_number}`}
+                              loading="lazy"
+                            />
+                            <span>
+                              Buka gambar ukuran penuh
+                            </span>
+                          </a>
+                        </>
+                      ) : (
+                        <p class="proof-unavailable">
+                          {payment.proof_path
+                            ? 'Bukti tersedia, tetapi belum dapat dimuat. Muat ulang halaman.'
+                            : 'Pelanggan belum mengunggah bukti pembayaran.'}
+                        </p>
+                      )}
+
+                      {payment.payment_status === 'pending' &&
+                        payment.proof_path &&
+                        payment.proof_signed_url && (
+                          <div class="payment-actions">
+                            <button
+                              type="button"
+                              class="payment-action approve"
+                              data-payment-action
+                              data-decision="paid"
+                              data-payment-id={payment.id}
+                            >
+                              Terima Pembayaran
+                            </button>
+
+                            <button
+                              type="button"
+                              class="payment-action reject"
+                              data-payment-action
+                              data-decision="rejected"
+                              data-payment-id={payment.id}
+                            >
+                              Tolak Pembayaran
+                            </button>
+                          </div>
+                        )}
+                    </div>
+                  )}
+
+                  <p
+                    class="payment-feedback"
+                    data-payment-feedback
+                    aria-live="polite"
+                  ></p>
+                </section>
+              ))
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+  )}
+</AdminLayout>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>(
+    '[data-payment-action]'
+  );
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      const paymentId = button.dataset.paymentId;
+      const decision = button.dataset.decision;
+
+      if (
+        !paymentId ||
+        !['paid', 'rejected'].includes(decision ?? '')
+      ) {
+        return;
+      }
+
+      const card = button.closest<HTMLElement>(
+        '[data-payment-card]'
+      );
+
+      const feedback = card?.querySelector<HTMLElement>(
+        '[data-payment-feedback]'
+      );
+
+      const cardButtons = card?.querySelectorAll<HTMLButtonElement>(
+        '[data-payment-action]'
+      );
+
+      const isPaid = decision === 'paid';
+
+      const confirmed = window.confirm(
+        isPaid
+          ? 'Apakah Anda yakin pembayaran ini sudah benar dan ingin menerimanya?'
+          : 'Apakah Anda yakin ingin menolak pembayaran ini?'
+      );
+
+      if (!confirmed) return;
+
+      cardButtons?.forEach((item) => {
+        item.disabled = true;
+      });
+
+      if (feedback) {
+        feedback.textContent = 'Memproses verifikasi pembayaran...';
+        feedback.className = 'payment-feedback processing';
+      }
+
+      try {
+        const response = await fetch(
+          `/api/admin/payments/${encodeURIComponent(paymentId)}/verify`,
+          {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              decision,
+            }),
+            cache: 'no-store',
+          }
+        );
+
+        const result = await response.json() as {
+          status?: string;
+          message?: string;
+          result?: unknown;
+        };
+
+        if (!response.ok || result.status !== 'ready') {
+          throw new Error(
+            result.message ?? 'Verifikasi pembayaran gagal.'
+          );
+        }
+
+        if (feedback) {
+          feedback.textContent = isPaid
+            ? 'Pembayaran berhasil diverifikasi. Memperbarui halaman...'
+            : 'Pembayaran berhasil ditolak. Memperbarui halaman...';
+
+          feedback.className = 'payment-feedback success';
+        }
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+
+      } catch (error) {
+        if (feedback) {
+          feedback.textContent =
+            error instanceof Error
+              ? error.message
+              : 'Terjadi kesalahan saat memproses pembayaran.';
+
+          feedback.className = 'payment-feedback error';
+        }
+
+        cardButtons?.forEach((item) => {
+          item.disabled = false;
+        });
+      }
+    });
+  });
+</script>
+
+<style>
+  .admin-orders-list {
+    display: grid;
+    gap: 16px;
+  }
+
+  .admin-order-card {
+    display: grid;
+    gap: 18px;
+  }
+
+  .admin-order-card .admin-panel-heading {
+    margin-bottom: 0;
+  }
+
+  .admin-order-card h2 {
+    margin: 0 0 5px;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-order-card h3 {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+  }
+
+  .admin-order-card p {
+    margin: 0 0 8px;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-order-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 20px;
+  }
+
+  .admin-order-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-order-item span:last-child {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .admin-order-payment {
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .payment-card {
+    display: grid;
+    gap: 12px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .payment-status-row {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.9rem;
+  }
+
+  .payment-meta {
+    font-size: 0.85rem;
+    color: var(--muted, #777);
+  }
+
+  .payment-proof {
+    display: grid;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .payment-proof h4 {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .proof-link {
+    display: grid;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .proof-link img {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    max-height: 400px;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface, #f5f5f5);
+  }
+
+  .proof-link span {
+    font-size: 0.85rem;
+    text-decoration: underline;
+  }
+
+  .proof-unavailable {
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--surface-secondary, #f3f3f3);
+    font-size: 0.9rem;
+  }
+
+  .payment-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .payment-action {
+    min-height: 42px;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .payment-action.approve {
+    background: #16834b;
+  }
+
+  .payment-action.reject {
+    background: #b83232;
+  }
+
+  .payment-action:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .payment-feedback {
+    min-height: 20px;
+    font-size: 0.88rem;
+  }
+
+  .payment-feedback.success {
+    color: #16834b;
+  }
+
+  .payment-feedback.error {
+    color: #c0392b;
+  }
+
+  .payment-feedback.processing {
+    color: var(--muted, #777);
+  }
+
+  @media (max-width: 600px) {
+    .admin-order-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-order-item {
+      font-size: 0.9rem;
+    }
+
+    .payment-actions {
+      flex-direction: column;
+    }
+
+    .payment-action {
+      width: 100%;
+    }
+  }
+</style>

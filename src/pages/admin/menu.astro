@@ -1,0 +1,49 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminMenuForm from '../../components/AdminMenuForm.astro';
+import { loadMenu } from '../../lib/services/menu';
+import { MENU_MUTATIONS_ENABLED, MENU_UPLOAD_ENABLED } from 'astro:env/server';
+import { createAdminClient } from '../../lib/admin/supabase';
+import { loadAdminMenu } from '../../lib/admin/menu-service';
+import { rupiah } from '../../lib/validation/menu';
+
+const mutationsEnabled = MENU_MUTATIONS_ENABLED === 'true';
+const adminClient = mutationsEnabled ? createAdminClient(Astro) : null;
+const result = adminClient ? await loadAdminMenu(adminClient) : await loadMenu();
+const writable = mutationsEnabled && Boolean(adminClient) && result.status === 'ready';
+const photoWritable = writable && MENU_UPLOAD_ENABLED === 'true';
+const items = result.status === 'ready' ? result.items : [];
+const categories = [...new Set(items.map((item) => item.category))].sort((a, b) => a.localeCompare(b, 'id'));
+const editId = Astro.url.searchParams.get('edit');
+const selected = editId ? items.find((item) => item.id === editId) : undefined;
+const identity = Astro.locals.admin!;
+---
+<AdminLayout title="Manajemen Menu" identity={identity}>
+  <div class="admin-page-head admin-page-banner"><div><h1>Manajemen Menu <span class="admin-title-count">{result.status === 'ready' ? `${items.length} menu` : 'Data belum tersedia'}</span></h1><p>{writable ? 'Katalog Shiboss, termasuk produk yang tidak tersedia.' : 'Data katalog aktif dari layanan menu Shiboss. Penyimpanan menu belum diaktifkan.'}</p></div><button class="button" type="button" data-admin-open="add-form">{writable ? '+ Tambah Menu' : 'Lihat form tambah'}</button></div>
+  <p class="admin-notice" data-admin-saved-notice role="status" hidden></p>
+  {!writable && <p class="admin-notice" role="status">Tambah dan edit menu belum aktif sampai grant, RLS, dan pengujian database terisolasi selesai.</p>}
+  <section class="admin-panel admin-filter-panel" aria-label="Pencarian dan filter menu">
+    {result.status === 'ready' && items.length > 0 && <><div class="admin-filters"><label>Cari produk<input type="search" placeholder="Cari berdasarkan nama atau kategori menu…" data-admin-search autocomplete="off" /></label><label>Kategori<select data-admin-category><option value="">Semua kategori</option>{categories.map((category) => <option value={category}>{category}</option>)}</select></label></div><div class="admin-category-chips" aria-label="Filter kategori"><button type="button" class="is-active" data-admin-chip="">Semua <span>{items.length}</span></button>{categories.map((category) => <button type="button" data-admin-chip={category}>{category} <span>{items.filter((item) => item.category === category).length}</span></button>)}</div></>}
+  </section>
+  <section class="admin-panel admin-list-panel" aria-labelledby="list-title">
+    <div class="admin-panel-heading"><div><h2 id="list-title">Daftar Menu</h2><p>{writable ? 'Produk aktif dan tidak tersedia ditampilkan.' : 'Hanya produk yang tersedia untuk pelanggan ditampilkan di sini.'}</p></div><span class="admin-count" data-admin-count>{result.status === 'ready' ? `${items.length} produk` : 'Data belum tersedia'}</span></div>
+    {result.status === 'ready' && items.length > 0 ? (
+      <>
+        <div class="admin-menu-columns" aria-hidden="true"><span>Produk &amp; Keterangan</span><span>Kategori</span><span>Harga Resmi</span><span>Ketersediaan</span><span>Aksi</span></div>
+        <div class="admin-menu-list" role="list">
+          {items.map((item) => <article class="admin-menu-row" role="listitem" data-admin-row data-name={item.name.toLocaleLowerCase('id')} data-category={item.category}>
+            <div class="admin-menu-product"><div class="admin-menu-image">{item.image_url ? <img src={item.image_url} alt={item.name} width="64" height="64" loading="lazy" data-admin-image /> : null}<span hidden={Boolean(item.image_url)} aria-label="Foto belum tersedia">Tanpa foto</span></div><div><strong>{item.name}</strong><small>{item.description || 'Tanpa deskripsi'}</small></div></div>
+            <div class="admin-menu-value"><span class="admin-mobile-label">Kategori</span>{item.category}</div>
+            <div class="admin-menu-value"><span class="admin-mobile-label">Harga</span>{rupiah(item.price)}</div>
+            <div class="admin-menu-value"><span class="admin-mobile-label">Status</span><span class="admin-status" data-unavailable={!item.is_available}>{item.is_available ? 'Tersedia' : 'Tidak tersedia'}</span></div>
+            <a class="admin-row-action" href={`/admin/menu?edit=${encodeURIComponent(item.id)}`} aria-label={`${writable ? 'Edit' : 'Lihat rancangan edit'} ${item.name}`}>{writable ? 'Edit menu' : 'Lihat form edit'}</a>
+          </article>)}
+        </div>
+        <p class="admin-empty-filter" data-admin-empty hidden>Produk tidak ditemukan. Ubah pencarian atau kategori.</p>
+      </>
+    ) : <div class="admin-empty-state"><h3>{result.status === 'ready' ? 'Belum ada menu tersedia' : 'Menu belum berhasil dimuat'}</h3><p>{result.status === 'ready' ? 'Produk akan tampil di sini saat tersedia melalui layanan menu.' : 'Periksa koneksi layanan menu dan coba muat ulang halaman.'}</p></div>}
+  </section>
+  <dialog class="admin-form-dialog" id="admin-form-dialog" data-admin-dialog data-open-edit={selected ? 'true' : 'false'} data-menu-write-enabled={writable ? 'true' : 'false'} aria-label="Formulir menu"><div class="admin-dialog-bar"><span>{writable ? 'Form Menu' : 'Form Menu · Pratinjau'}</span><button type="button" data-admin-close aria-label="Tutup formulir">✕</button></div><AdminMenuForm mode="create" enabled={writable} photoEnabled={photoWritable} />{selected && <AdminMenuForm mode="edit" item={selected} enabled={writable} photoEnabled={photoWritable} />}</dialog>
+  {editId && !selected && <p class="admin-alert" role="status">Produk yang dipilih tidak ada dalam daftar menu tersedia.</p>}
+</AdminLayout>
+<script>import '../../scripts/admin-menu';</script>

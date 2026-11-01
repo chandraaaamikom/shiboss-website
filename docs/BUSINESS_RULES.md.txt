@@ -1,0 +1,378 @@
+# BUSINESS RULES
+## Website Kedai Susu Segar Shiboss
+
+**Versi:** 1.0  
+**Status:** Draft untuk implementasi  
+**Framework:** Astro  
+**Database:** Supabase PostgreSQL  
+**Metode Pengembangan:** SDLC Incremental
+
+---
+
+## 1. Tujuan Dokumen
+
+Dokumen ini menetapkan aturan bisnis yang harus diterapkan pada website Kedai Susu Segar Shiboss. Aturan mencakup pengelolaan menu, pemesanan pelanggan, input pesanan melalui kasir, perhitungan harga, pembayaran, verifikasi transaksi, dan pengelolaan data oleh admin.
+
+Codex harus mengikuti aturan dalam dokumen ini ketika mengimplementasikan fitur website. Codex tidak boleh mengubah aturan bisnis tanpa persetujuan pemilik proyek.
+
+## 2. Peran Pengguna
+
+### 2.1 Pelanggan
+
+Pelanggan dapat:
+- Melihat menu yang tersedia.
+- Melihat detail produk.
+- Menambahkan produk ke keranjang.
+- Menambah, mengurangi, dan menghapus produk dari keranjang.
+- Mengisi nama dan nomor meja.
+- Menambahkan catatan pesanan jika diperlukan.
+- Melihat ringkasan pesanan.
+- Mengirim pesanan melalui website.
+- Melihat instruksi pembayaran QRIS.
+
+Pelanggan tidak boleh:
+- Mengakses dashboard admin.
+- Mengelola data menu.
+- Melihat seluruh pesanan pelanggan lain.
+- Mengubah harga produk melalui browser.
+- Menetapkan sendiri status pembayaran menjadi berhasil.
+
+### 2.2 Admin
+
+Admin dapat:
+- Login ke dashboard.
+- Melihat daftar dan detail pesanan.
+- Menambah, melihat, mengubah, dan menonaktifkan produk.
+- Memasukkan pesanan yang disampaikan pelanggan secara langsung di kasir.
+- Memilih metode pembayaran untuk pesanan kasir.
+- Memeriksa transaksi QRIS secara manual.
+- Mencatat hasil verifikasi pembayaran.
+- Memperbarui status pesanan sesuai aturan operasional.
+
+Semua operasi administratif harus memerlukan autentikasi dan otorisasi yang sah.
+
+## 3. Aturan Akses Menu
+
+**BR-01. Akses website**
+
+Pelanggan dapat membuka website melalui alamat website atau QR Code yang tersedia di kedai.
+
+**BR-02. QR Code meja**
+
+Seluruh meja menggunakan satu QR Code yang sama. QR Code tersebut hanya membuka halaman menu digital dan tidak menentukan nomor meja secara otomatis.
+
+**BR-03. Nomor meja**
+
+Pelanggan yang memesan melalui QR Code harus mengisi nomor meja secara manual. Sistem wajib memvalidasi bahwa nomor meja telah diisi sebelum pesanan dikirim.
+
+**BR-04. Produk tersedia**
+
+Pelanggan hanya dapat memesan produk yang berstatus tersedia. Produk yang tidak tersedia tidak boleh ditambahkan ke pesanan baru.
+
+**BR-05. Harga produk**
+
+Sistem mengambil harga produk dari database. Pelanggan tidak boleh menentukan atau mengubah harga melalui permintaan browser.
+
+## 4. Aturan Keranjang
+
+**BR-06. Penambahan produk**
+
+Pelanggan dapat menambahkan produk yang tersedia ke keranjang.
+
+**BR-07. Perubahan jumlah**
+
+Pelanggan dapat menambah atau mengurangi jumlah produk. Jumlah produk harus berupa bilangan bulat positif.
+
+**BR-08. Penghapusan produk**
+
+Pelanggan dapat menghapus produk dari keranjang. Sistem harus memperbarui subtotal dan total setelah perubahan.
+
+**BR-09. Keranjang kosong**
+
+Sistem tidak boleh menerima pesanan apabila keranjang kosong.
+
+**BR-10. Perhitungan subtotal**
+
+Subtotal setiap produk dihitung berdasarkan harga produk dan jumlah yang dipesan.
+
+Rumus:
+
+Subtotal = Harga Satuan × Jumlah Produk
+
+**BR-11. Perhitungan total**
+
+Total pesanan merupakan penjumlahan seluruh subtotal produk. Backend harus menghitung ulang total berdasarkan data produk yang tersimpan di database.
+
+**BR-12. Pemeriksaan harga**
+
+Sebelum menyimpan pesanan, sistem harus memeriksa kembali harga dan ketersediaan produk. Sistem tidak boleh menggunakan total yang dikirim browser sebagai satu-satunya sumber perhitungan.
+
+## 5. Aturan Pemesanan Melalui QR Code Meja
+
+**BR-13. Asal pesanan**
+
+Setiap pesanan yang dibuat pelanggan melalui halaman menu digital menggunakan nilai `table_qr` pada kolom `order_source`.
+
+**BR-14. Informasi pelanggan**
+
+Pelanggan harus mengisi nama dan nomor meja. Catatan pesanan bersifat opsional.
+
+**BR-15. Ringkasan pesanan**
+
+Sebelum mengirim pesanan, pelanggan dapat memeriksa produk, jumlah, harga satuan, subtotal, dan total pembayaran.
+
+**BR-16. Validasi pesanan**
+
+Sistem memeriksa kelengkapan data, isi keranjang, ketersediaan produk, harga terbaru, dan total sebelum menyimpan pesanan.
+
+**BR-17. Penyimpanan pesanan**
+
+Sistem menyimpan data pesanan dan seluruh detail produknya ke Supabase PostgreSQL. Penyimpanan header pesanan dan detail pesanan harus berlangsung dalam satu transaksi database agar sistem tidak menghasilkan pesanan yang tersimpan sebagian.
+
+**BR-18. Konfirmasi pesanan**
+
+Sistem hanya menampilkan konfirmasi keberhasilan setelah database berhasil menyimpan pesanan. Jika penyimpanan gagal, sistem harus menampilkan pesan kesalahan yang jelas.
+
+**BR-19. Metode pembayaran QR meja**
+
+Pesanan dengan asal `table_qr` hanya boleh menggunakan metode pembayaran `qris`.
+
+Sistem harus menolak metode pembayaran tunai untuk pesanan ini, baik melalui antarmuka maupun validasi backend.
+
+## 6. Aturan Pemesanan Melalui Kasir
+
+**BR-20. Input pesanan kasir**
+
+Pesanan yang disampaikan pelanggan secara langsung dimasukkan oleh admin melalui dashboard. Sistem tidak memerlukan akun kasir terpisah pada rancangan awal.
+
+**BR-21. Asal pesanan kasir**
+
+Setiap pesanan yang dimasukkan melalui dashboard untuk pelanggan kasir menggunakan nilai `cashier` pada kolom `order_source`.
+
+**BR-22. Informasi pesanan**
+
+Admin memilih produk dan jumlah, memeriksa harga, serta mengisi informasi pelanggan dan catatan jika diperlukan.
+
+Nomor meja bersifat opsional untuk pesanan kasir apabila pelanggan tidak memesan untuk meja tertentu.
+
+**BR-23. Metode pembayaran kasir**
+
+Pesanan dengan asal `cashier` dapat menggunakan metode pembayaran `cash` atau `qris`.
+
+**BR-24. Pencatatan admin**
+
+Sistem mencatat ID admin yang membuat pesanan kasir pada kolom `created_by`.
+
+**BR-25. Validasi pesanan kasir**
+
+Sistem menerapkan validasi harga, jumlah, ketersediaan produk, dan total yang sama seperti pada pesanan melalui QR Code.
+
+## 7. Aturan Pembayaran
+
+### 7.1 Metode pembayaran
+
+**BR-26. Jenis metode pembayaran**
+
+Sistem mendukung dua metode pembayaran:
+- `cash`: pembayaran tunai.
+- `qris`: pembayaran melalui QRIS.
+
+**BR-27. Pemilihan metode**
+
+Pesanan QR meja hanya mendukung QRIS. Pesanan kasir mendukung tunai dan QRIS.
+
+### 7.2 Pembayaran QRIS
+
+**BR-28. Proses pembayaran QRIS**
+
+Sistem menampilkan instruksi pembayaran QRIS setelah pesanan berhasil disimpan.
+
+**BR-29. Verifikasi manual**
+
+Admin memeriksa transaksi melalui sarana yang digunakan kedai di luar proses unggah bukti pembayaran pada website. Website tidak mewajibkan pelanggan mengunggah bukti pembayaran.
+
+**BR-30. Status awal pembayaran**
+
+Pembayaran QRIS yang belum diperiksa harus memiliki status `pending`.
+
+**BR-31. Pembayaran terverifikasi**
+
+Admin hanya boleh mengubah status pembayaran menjadi `paid` setelah memeriksa transaksi dan memastikan pembayaran berhasil.
+
+**BR-32. Pembayaran tidak valid**
+
+Jika admin tidak dapat memastikan pembayaran, sistem harus mempertahankan status belum dibayar atau mencatat status penolakan sesuai keputusan operasional. Sistem tidak boleh menganggap pembayaran berhasil tanpa konfirmasi.
+
+### 7.3 Pembayaran tunai
+
+**BR-33. Penerimaan uang**
+
+Untuk pesanan kasir yang menggunakan tunai, admin mencatat pembayaran setelah menerima uang dari pelanggan.
+
+**BR-34. Konfirmasi pembayaran tunai**
+
+Status pembayaran tunai hanya dapat menjadi `paid` setelah admin mencatat penerimaan uang.
+
+**BR-35. Pembayaran QR meja**
+
+Sistem tidak menyediakan opsi tunai untuk pesanan yang dibuat melalui QR Code meja.
+
+## 8. Aturan Status Pesanan dan Pembayaran
+
+**BR-36. Status terpisah**
+
+Sistem harus memisahkan status pesanan (`order_status`) dari status pembayaran (`payment_status`).
+
+Status pesanan menunjukkan proses operasional. Status pembayaran menunjukkan kondisi pembayaran.
+
+**BR-37. Status pembayaran**
+
+Nilai awal yang direncanakan:
+- `pending`: pembayaran belum dikonfirmasi.
+- `paid`: pembayaran telah dikonfirmasi.
+- `rejected`: pembayaran ditolak setelah pemeriksaan.
+
+**BR-38. Status pesanan**
+
+Status yang diusulkan:
+- `pending`: pesanan telah diterima sistem.
+- `confirmed`: pesanan telah dikonfirmasi.
+- `preparing`: pesanan sedang disiapkan.
+- `ready`: pesanan siap diserahkan.
+- `completed`: pesanan telah selesai.
+- `cancelled`: pesanan dibatalkan jika pembatalan diizinkan.
+
+Daftar status dan aturan perpindahannya harus disepakati sebelum implementasi final.
+
+**BR-39. Pembaruan status**
+
+Perubahan status pesanan dan pembayaran hanya boleh dilakukan oleh pihak yang memiliki kewenangan sesuai aturan sistem.
+
+**BR-40. Konsistensi status**
+
+Sistem tidak boleh menyimpulkan bahwa pesanan selesai hanya karena pembayaran berhasil. Status operasional pesanan dan pembayaran harus diperbarui secara terpisah.
+
+## 9. Aturan Pengelolaan Menu
+
+**BR-41. Pengelolaan produk**
+
+Admin dapat menambah, melihat, mengubah, dan menonaktifkan produk.
+
+**BR-42. Validasi produk**
+
+Nama produk, kategori, dan harga harus memenuhi validasi sebelum disimpan.
+
+**BR-43. Harga produk**
+
+Harga produk harus bernilai positif dan menggunakan tipe data numerik yang sesuai.
+
+**BR-44. Produk yang telah dipesan**
+
+Jika produk sudah tercantum dalam riwayat pesanan, sistem sebaiknya menonaktifkan produk daripada menghapus permanen data yang masih diperlukan untuk menjaga riwayat transaksi.
+
+**BR-45. Perubahan harga**
+
+Perubahan harga menu tidak boleh mengubah harga satuan yang telah disimpan pada detail pesanan sebelumnya.
+
+## 10. Aturan Database dan Integritas Data
+
+**BR-46. Identitas pesanan**
+
+Setiap pesanan harus memiliki ID unik dan nomor pesanan yang dapat ditampilkan kepada pengguna.
+
+**BR-47. Detail pesanan**
+
+Setiap pesanan harus memiliki setidaknya satu detail produk.
+
+**BR-48. Snapshot produk**
+
+Detail pesanan harus menyimpan nama produk, harga satuan saat transaksi, jumlah, dan subtotal.
+
+**BR-49. Konsistensi total**
+
+Total pesanan harus sama dengan penjumlahan seluruh subtotal detail pesanan.
+
+**BR-50. Relasi pembayaran**
+
+Setiap pesanan memiliki paling banyak satu catatan pembayaran pada rancangan awal.
+
+**BR-51. Pencatatan verifikasi**
+
+Sistem mencatat ID admin dan waktu verifikasi untuk pembayaran yang diperiksa secara manual.
+
+**BR-52. Waktu transaksi**
+
+Sistem mencatat waktu pembuatan pesanan dan pembayaran menggunakan kolom waktu yang konsisten.
+
+## 11. Aturan Keamanan dan Hak Akses
+
+**BR-53. Autentikasi admin**
+
+Dashboard hanya dapat diakses oleh pengguna yang berhasil login dan memiliki peran admin.
+
+**BR-54. Perlindungan data**
+
+Pelanggan tidak boleh membaca, mengubah, atau menghapus seluruh data pesanan melalui akses database langsung.
+
+**BR-55. Row Level Security**
+
+Supabase Row Level Security (RLS) harus melindungi tabel yang dapat diakses melalui API.
+
+**BR-56. Validasi backend**
+
+Aturan asal pesanan, metode pembayaran, harga, total, dan status harus diperiksa pada backend. Validasi antarmuka saja tidak cukup.
+
+**BR-57. Kunci rahasia**
+
+Service role key Supabase hanya boleh digunakan pada lingkungan server. Kunci tersebut tidak boleh dikirim ke browser atau disimpan pada source code yang dipublikasikan.
+
+**BR-58. Otorisasi perubahan data**
+
+Hanya admin yang berwenang dapat mengelola menu, memasukkan pesanan kasir, memverifikasi pembayaran, dan mengubah status administratif.
+
+## 12. Penanganan Kesalahan
+
+**BR-59. Data tidak valid**
+
+Sistem menolak data yang tidak memenuhi aturan dan menampilkan pesan kesalahan yang dapat dipahami.
+
+**BR-60. Produk tidak tersedia**
+
+Sistem menolak produk yang sudah tidak tersedia ketika pelanggan mengirim pesanan.
+
+**BR-61. Kegagalan database**
+
+Sistem menampilkan pesan gagal jika penyimpanan tidak berhasil. Sistem tidak boleh menampilkan konfirmasi palsu.
+
+**BR-62. Pencegahan pesanan ganda**
+
+Implementasi harus mempertimbangkan pencegahan duplikasi ketika pelanggan mengirim ulang permintaan karena jaringan lambat atau respons tidak diterima.
+
+## 13. Keputusan yang Belum Ditetapkan
+
+Hal berikut masih memerlukan persetujuan pemilik proyek:
+1. Apakah pelanggan dapat membatalkan pesanan.
+2. Apakah stok produk perlu dikelola dalam website.
+3. Apakah admin harus mengonfirmasi pesanan sebelum proses pembayaran atau persiapan.
+4. Apakah pelanggan dapat melihat status pesanan melalui nomor pesanan.
+5. Apakah status `rejected` digunakan untuk pembayaran QRIS yang tidak valid atau hanya untuk kasus tertentu.
+6. Apakah sistem membutuhkan riwayat perubahan status untuk audit.
+7. Bagaimana aturan pengembalian uang jika pembatalan terjadi setelah pembayaran.
+8. Apakah admin boleh mengubah pesanan setelah pelanggan mengirimkannya.
+
+Codex harus menandai keputusan yang belum ditetapkan dan tidak boleh membuat aturan baru tanpa persetujuan.
+
+## 14. Arahan Implementasi untuk Codex
+
+1. Baca dokumen ini sebelum membuat fitur pemesanan dan pembayaran.
+2. Terapkan aturan bisnis pada antarmuka dan backend.
+3. Gunakan Supabase PostgreSQL sebagai sumber data utama.
+4. Terapkan validasi server untuk harga, total, asal pesanan, metode pembayaran, dan status.
+5. Terapkan autentikasi admin dan RLS.
+6. Jangan membuat integrasi pembayaran otomatis.
+7. Jangan membuat fitur unggah bukti QRIS melalui website.
+8. Jangan menambahkan akun kasir terpisah pada rancangan awal.
+9. Jangan mengasumsikan keputusan yang belum ditetapkan.
+10. Uji seluruh aturan bisnis sebelum menyatakan fitur selesai.
+
+**Akhir dokumen.**

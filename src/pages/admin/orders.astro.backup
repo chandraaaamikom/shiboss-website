@@ -1,0 +1,9 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+const identity = Astro.locals.admin!;
+---
+<AdminLayout title="Pesanan" identity={identity}>
+  <div class="admin-page-head admin-page-banner"><div><h1>Manajemen Pesanan</h1><p>Daftar pesanan dan status pemrosesan akan tersedia setelah integrasi backend ditinjau.</p></div><span class="admin-title-count">Integrasi belum aktif</span></div>
+  <p class="admin-notice">Halaman ini belum membaca pesanan produksi. Migrasi, otorisasi admin, dan pengujian transaksi terisolasi masih diperlukan.</p>
+  <section class="admin-panel admin-list-panel" aria-labelledby="orders-title"><div class="admin-panel-heading"><div><h2 id="orders-title">Pesanan Dine-In</h2><p>Belum ada sumber data pesanan yang terhubung ke dashboard.</p></div></div><div class="admin-inset-empty admin-large-empty"><span aria-hidden="true">▤</span><h3>Daftar pesanan belum tersedia</h3><p>Ini bukan pernyataan bahwa jumlah pesanan nol. Pemesanan dan perubahan status masih dinonaktifkan.</p><a class="button admin-outline-button" href="/admin">Kembali ke Dashboard →</a></div></section>
+</AdminLayout>

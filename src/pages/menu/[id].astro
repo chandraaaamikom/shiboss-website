@@ -1,0 +1,37 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import MenuState from '../../components/MenuState.astro';
+import { loadMenu } from '../../lib/services/menu';
+import { rupiah } from '../../lib/validation/menu';
+const result = await loadMenu();
+const item = result.items.find((product) => product.id === Astro.params.id);
+Astro.response.headers.set('Cache-Control', 'no-store');
+if (result.status !== 'ready') Astro.response.status = 503;
+else if (!item) Astro.response.status = 404;
+---
+<MainLayout title={item?.name ?? 'Detail menu'}>
+  <section class="container detail-page">
+    <a class="back-link" href="/menu">Kembali ke menu</a>
+    {result.status !== 'ready' ? <MenuState status={result.status} /> : item ? (
+      <div class="product-detail">
+        <div class="product-media">{item.image_url ? <img src={item.image_url} alt={item.name} width="640" height="480" /> : <span>Foto produk belum tersedia</span>}</div>
+        <div>
+          <p class="category-label">{item.category}</p>
+          <h1>{item.name}</h1>
+          <p class="detail-price">{rupiah(item.price)}</p>
+          <p class="availability">Tersedia</p>
+          {item.description && <><h2>Tentang menu ini</h2><p>{item.description}</p></>}
+          <form class="detail-order" data-add-to-cart data-product-id={item.id}>
+            <label for="quantity">Jumlah</label>
+            <input id="quantity" name="quantity" type="number" min="1" step="1" value="1" required inputmode="numeric" />
+            <button class="button" type="submit">Tambah ke keranjang</button>
+            <p class="form-feedback" role="status" data-add-feedback></p>
+          </form>
+        </div>
+      </div>
+    ) : (
+      <section class="menu-state"><h1>Menu tidak tersedia</h1><p>Produk tidak ditemukan atau sedang tidak tersedia. Silakan pilih menu lain.</p><a class="button" href="/menu">Lihat menu</a></section>
+    )}
+  </section>
+</MainLayout>
+<script>import '../../scripts/menu'; import '../../scripts/product-detail';</script>

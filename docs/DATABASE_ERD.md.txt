@@ -1,0 +1,307 @@
+# DATABASE ERD
+## Website Kedai Susu Segar Shiboss
+
+Versi 1.0  
+Status Rancangan database  
+Database Supabase PostgreSQL  
+Framework Astro  
+Metode Pengembangan SDLC Incremental
+
+## 1. Tujuan
+
+Dokumen ini menjelaskan struktur tabel, atribut, primary key, foreign key, relasi, dan aturan integritas database untuk website Kedai Susu Segar Shiboss.
+
+Database mendukung
+1. Pengelolaan menu.
+2. Pemesanan melalui QR Code meja.
+3. Input pesanan kasir oleh admin.
+4. Penyimpanan detail produk dan harga transaksi.
+5. Pencatatan pembayaran tunai dan QRIS.
+6. Verifikasi QRIS secara manual oleh admin.
+7. Pengelolaan status pesanan.
+
+## 2. Daftar Tabel
+
+Rancangan awal menggunakan lima tabel inti.
+
+ No.  Nama tabel  Fungsi 
+---------
+ 1  `profiles`  Menyimpan profil dan peran admin yang terkait dengan akun Supabase Auth. 
+ 2  `menu_items`  Menyimpan data produk dan ketersediaannya. 
+ 3  `orders`  Menyimpan informasi utama pesanan. 
+ 4  `order_items`  Menyimpan produk, jumlah, harga satuan, dan subtotal setiap pesanan. 
+ 5  `payments`  Menyimpan metode, nominal, status, dan hasil verifikasi pembayaran. 
+
+## 3. Diagram ERD
+
+```mermaid
+erDiagram
+    PROFILES o--o{ ORDERS  membuat
+    PROFILES o--o{ PAYMENTS  memverifikasi
+    ORDERS --{ ORDER_ITEMS  memiliki
+    MENU_ITEMS --o{ ORDER_ITEMS  digunakan
+    ORDERS --o PAYMENTS  memiliki
+
+    PROFILES {
+        uuid id PK
+        text full_name
+        text role
+        timestamptz created_at
+    }
+
+    MENU_ITEMS {
+        uuid id PK
+        text name
+        text description
+        text category
+        numeric price
+        text image_url
+        boolean is_available
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ORDERS {
+        uuid id PK
+        text order_number UK
+        text order_source
+        text customer_name
+        text table_number
+        text notes
+        numeric total_amount
+        text order_status
+        uuid created_by FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ORDER_ITEMS {
+        uuid id PK
+        uuid order_id FK
+        uuid menu_item_id FK
+        text product_name
+        integer quantity
+        numeric unit_price
+        numeric subtotal
+    }
+
+    PAYMENTS {
+        uuid id PK
+        uuid order_id FK
+        text payment_method
+        numeric amount
+        text payment_status
+        uuid verified_by FK
+        timestamptz verified_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+```
+
+Keterangan relasi
+
+- Satu admin dapat membuat banyak pesanan kasir.
+- Satu admin dapat memverifikasi banyak pembayaran.
+- Satu pesanan memiliki satu atau lebih detail produk.
+- Satu produk dapat muncul pada banyak detail pesanan.
+- Satu pesanan memiliki maksimal satu catatan pembayaran dalam rancangan awal.
+
+## 4. Struktur Tabel
+
+### 4.1 Tabel `profiles`
+
+Tabel ini menyimpan profil pengguna yang mempunyai akses administratif.
+
+ Kolom  Tipe data  Ketentuan 
+---------
+ `id`  UUID  Primary key, mengikuti ID `auth.users`. 
+ `full_name`  TEXT  Nama admin. 
+ `role`  TEXT  Peran pengguna, rancangan awal `admin`. 
+ `created_at`  TIMESTAMPTZ  Waktu pembuatan profil. 
+
+Aturan
+- Akun autentikasi dikelola oleh Supabase Auth.
+- ID profil harus sama dengan ID pengguna pada `auth.users`.
+- Pembuatan akun admin tidak boleh terbuka untuk pendaftaran publik tanpa otorisasi.
+- Sistem tidak membutuhkan akun pelanggan untuk membuat pesanan melalui QR Code.
+
+### 4.2 Tabel `menu_items`
+
+Tabel ini menyimpan produk susu segar, minuman lain, dan makanan pendamping.
+
+ Kolom  Tipe data  Ketentuan 
+---------
+ `id`  UUID  Primary key. 
+ `name`  TEXT  Nama produk, wajib diisi. 
+ `description`  TEXT  Deskripsi produk, opsional. 
+ `category`  TEXT  Kategori produk, wajib diisi. 
+ `price`  NUMERIC(12,2)  Harga produk, harus lebih besar dari nol. 
+ `image_url`  TEXT  Lokasi gambar produk, opsional. 
+ `is_available`  BOOLEAN  Menentukan ketersediaan produk. 
+ `created_at`  TIMESTAMPTZ  Waktu pembuatan data. 
+ `updated_at`  TIMESTAMPTZ  Waktu perubahan data. 
+
+Aturan
+- Pelanggan hanya melihat produk yang tersedia.
+- Admin dapat menambah, mengubah, dan menonaktifkan produk.
+- Sistem mengambil harga dari database.
+- Sistem tidak menghapus riwayat transaksi ketika admin mengubah atau menonaktifkan produk.
+
+### 4.3 Tabel `orders`
+
+Tabel ini menyimpan informasi utama setiap pesanan.
+
+ Kolom  Tipe data  Ketentuan 
+---------
+ `id`  UUID  Primary key. 
+ `order_number`  TEXT  Nomor pesanan unik. 
+ `order_source`  TEXT  `table_qr` atau `cashier`. 
+ `customer_name`  TEXT  Nama pelanggan. 
+ `table_number`  TEXT  Nomor meja, wajib untuk `table_qr`. 
+ `notes`  TEXT  Catatan pesanan, opsional. 
+ `total_amount`  NUMERIC(12,2)  Total pesanan berdasarkan detail produk. 
+ `order_status`  TEXT  Status operasional pesanan. 
+ `created_by`  UUID  Foreign key ke `profiles.id`, boleh NULL untuk pesanan QR. 
+ `created_at`  TIMESTAMPTZ  Waktu pesanan dibuat. 
+ `updated_at`  TIMESTAMPTZ  Waktu perubahan pesanan. 
+
+Aturan
+- `order_number` harus unik.
+- `order_source` hanya menerima `table_qr` atau `cashier`.
+- Pesanan `table_qr` wajib mempunyai `table_number`.
+- Pesanan `cashier` mencatat admin pada `created_by`.
+- Backend menghitung `total_amount` berdasarkan seluruh detail pesanan.
+- Perubahan status harus melalui validasi otorisasi.
+- Pesanan dan detail produknya harus tersimpan secara konsisten.
+
+### 4.4 Tabel `order_items`
+
+Tabel ini menyimpan produk yang masuk ke setiap pesanan.
+
+ Kolom  Tipe data  Ketentuan 
+---------
+ `id`  UUID  Primary key. 
+ `order_id`  UUID  Foreign key ke `orders.id`. 
+ `menu_item_id`  UUID  Foreign key ke `menu_items.id`. 
+ `product_name`  TEXT  Snapshot nama produk saat transaksi. 
+ `quantity`  INTEGER  Jumlah produk, bilangan bulat positif. 
+ `unit_price`  NUMERIC(12,2)  Snapshot harga satuan. 
+ `subtotal`  NUMERIC(12,2)  Harga satuan dikalikan jumlah. 
+
+Aturan
+- Setiap detail harus terkait dengan satu pesanan.
+- Jumlah produk harus lebih besar dari nol.
+- Sistem menyimpan nama dan harga saat transaksi agar riwayat tetap konsisten.
+- Subtotal dihitung dari `unit_price × quantity`.
+- Sistem menolak pesanan tanpa detail produk.
+- Penghapusan data produk tidak boleh merusak riwayat transaksi. Produk yang sudah digunakan dalam pesanan sebaiknya dinonaktifkan.
+
+### 4.5 Tabel `payments`
+
+Tabel ini menyimpan informasi pembayaran pesanan.
+
+ Kolom  Tipe data  Ketentuan 
+---------
+ `id`  UUID  Primary key. 
+ `order_id`  UUID  Foreign key ke `orders.id`, unik. 
+ `payment_method`  TEXT  `cash` atau `qris`. 
+ `amount`  NUMERIC(12,2)  Nominal pembayaran. 
+ `payment_status`  TEXT  `pending`, `paid`, atau `rejected`. 
+ `verified_by`  UUID  Foreign key ke `profiles.id`, boleh NULL. 
+ `verified_at`  TIMESTAMPTZ  Waktu verifikasi, boleh NULL. 
+ `created_at`  TIMESTAMPTZ  Waktu pencatatan pembayaran. 
+ `updated_at`  TIMESTAMPTZ  Waktu perubahan data pembayaran. 
+
+Aturan
+- Satu pesanan memiliki maksimal satu catatan pembayaran.
+- Sistem membuat catatan pembayaran dengan status `pending` ketika pesanan dibuat.
+- Pembayaran QRIS harus diperiksa secara manual oleh admin.
+- Pembayaran tunai dicatat setelah admin menerima uang.
+- Status `paid` hanya boleh ditetapkan setelah pembayaran dikonfirmasi.
+- Pembayaran QRIS yang berhasil diverifikasi mencatat `verified_by` dan `verified_at`.
+- `order_id` harus unik untuk mencegah pembuatan beberapa catatan pembayaran pada pesanan yang sama.
+
+## 5. Aturan Metode Pembayaran
+
+ Asal pesanan  Metode yang diizinkan  Aturan 
+---------
+ `table_qr`  `qris`  Pelanggan mengisi nomor meja dan membayar melalui QRIS. 
+ `cashier`  `cash`, `qris`  Admin memasukkan pesanan melalui dashboard. 
+
+Backend harus memvalidasi kombinasi `order_source` dan `payment_method`. Sistem tidak boleh mengandalkan validasi pada antarmuka saja.
+
+## 6. Aturan Status
+
+### 6.1 Status pembayaran
+
+ Status  Makna 
+------
+ `pending`  Pembayaran belum dikonfirmasi. 
+ `paid`  Pembayaran telah dikonfirmasi. 
+ `rejected`  Pembayaran ditolak setelah pemeriksaan. 
+
+### 6.2 Status pesanan
+
+Rancangan awal menggunakan nilai berikut
+
+ Status  Makna 
+------
+ `pending`  Pesanan telah tersimpan dan menunggu proses berikutnya. 
+ `confirmed`  Pesanan telah dikonfirmasi. 
+ `preparing`  Pesanan sedang disiapkan. 
+ `ready`  Pesanan siap diserahkan. 
+ `completed`  Pesanan telah selesai. 
+ `cancelled`  Pesanan dibatalkan jika kebijakan pembatalan telah ditetapkan. 
+
+Status pesanan dan pembayaran harus dikelola secara terpisah. Status pembayaran `paid` tidak otomatis mengubah status pesanan menjadi `completed`.
+
+## 7. Aturan Integritas Database
+
+1. Setiap tabel memiliki primary key yang sesuai.
+2. Semua foreign key harus mengacu pada data yang valid.
+3. Sistem menggunakan constraint untuk membatasi nilai asal pesanan dan metode pembayaran.
+4. Nominal uang tidak boleh negatif.
+5. Harga dan subtotal dihitung pada backend.
+6. `order_number` dan `payments.order_id` harus unik.
+7. Data pesanan dan detail produk disimpan secara atomik melalui transaksi database.
+8. Penghapusan produk tidak boleh menghilangkan informasi historis transaksi.
+9. Sistem mencatat waktu transaksi dengan tipe `TIMESTAMPTZ`.
+10. Operasi administratif harus mengikuti kebijakan autentikasi dan otorisasi.
+
+## 8. Keamanan Database
+
+1. Aktifkan Row Level Security (RLS) pada tabel yang diakses melalui Supabase API.
+2. Pelanggan anonim hanya dapat mengakses fungsi publik yang secara khusus diizinkan.
+3. Pelanggan tidak boleh membaca seluruh data pesanan atau pembayaran.
+4. Pembuatan pesanan pelanggan harus melewati validasi server.
+5. Operasi admin harus memeriksa identitas dan peran pengguna.
+6. Perubahan status pembayaran tidak boleh dilakukan langsung oleh pelanggan.
+7. Supabase service role key hanya digunakan pada server.
+8. Jangan menyimpan kunci rahasia di frontend atau repository.
+9. Operasi pembuatan pesanan harus mencegah data tersimpan sebagian.
+10. Kebijakan RLS harus diuji untuk akses anonim, pengguna terautentikasi, dan admin.
+
+## 9. Keputusan yang Belum Ditetapkan
+
+Hal-hal berikut masih memerlukan persetujuan pemilik proyek
+
+1. Apakah website perlu mengelola stok produk.
+2. Apakah pelanggan dapat membatalkan pesanan.
+3. Apakah pelanggan dapat melihat status pesanan melalui nomor pesanan.
+4. Apakah sistem membutuhkan riwayat perubahan status.
+5. Bagaimana prosedur pengembalian uang.
+6. Bagaimana aturan perubahan pesanan setelah dikirim.
+
+Jangan mengimplementasikan keputusan tersebut sebagai aturan tetap sebelum ada persetujuan.
+
+## 10. Arahan Implementasi
+
+1. Gunakan dokumen ini sebagai dasar pembuatan SQL migration Supabase.
+2. Selaraskan nama kolom dan nilai status pada SQL, endpoint Astro, dan antarmuka.
+3. Terapkan constraint dan foreign key pada database.
+4. Gunakan validasi server untuk harga, jumlah, total, asal pesanan, dan metode pembayaran.
+5. Terapkan RLS dan otorisasi admin sebelum merilis dashboard.
+6. Uji kedua jalur pemesanan serta verifikasi pembayaran.
+7. Perbarui dokumen jika pemilik proyek menyetujui perubahan kebutuhan.
+
+Akhir dokumen.

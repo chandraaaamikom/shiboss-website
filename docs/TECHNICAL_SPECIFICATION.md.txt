@@ -1,0 +1,480 @@
+# TECHNICAL SPECIFICATION
+## Website Kedai Susu Segar Shiboss
+
+**Versi:** 1.0  
+**Status:** Draft untuk implementasi  
+**Metode Pengembangan:** SDLC Incremental  
+**Framework Frontend:** Astro  
+**Database:** Supabase PostgreSQL  
+**Bahasa:** TypeScript  
+**Lingkungan Pengembangan:** Windows
+
+---
+
+## 1. Tujuan
+
+Dokumen ini menetapkan arsitektur teknis, struktur proyek, teknologi, komunikasi frontend dan backend, integrasi database, keamanan, serta standar implementasi website Kedai Susu Segar Shiboss.
+
+Codex harus menggunakan dokumen ini bersama `PRD.md`, `USER_FLOW.md`, `DATABASE_ERD.md`, `BUSINESS_RULES.md`, dan `UI_SPECIFICATION.md`.
+
+Codex harus mengimplementasikan sistem secara bertahap menggunakan SDLC Incremental. Setiap increment harus memiliki fungsi yang dapat diuji sebelum pengembangan berlanjut.
+
+## 2. Teknologi yang Digunakan
+
+| Komponen | Teknologi | Fungsi |
+|---|---|---|
+| Frontend | Astro | Membangun halaman website dan komponen antarmuka. |
+| Bahasa pemrograman | TypeScript | Menulis kode dengan pemeriksaan tipe. |
+| Styling | CSS | Mengatur tata letak, warna, tipografi, dan responsivitas. |
+| Backend | Astro server endpoints | Menangani validasi, pemrosesan pesanan, dan operasi administratif. |
+| Database | Supabase PostgreSQL | Menyimpan menu, pesanan, detail pesanan, dan pembayaran. |
+| Autentikasi | Supabase Auth | Mengelola login admin. |
+| Keamanan data | PostgreSQL constraints dan Supabase RLS | Menjaga integritas data dan membatasi akses. |
+| Version control | Git | Mengelola riwayat perubahan kode. |
+| Editor dan agen coding | Codex | Membantu implementasi berdasarkan dokumentasi proyek. |
+
+Versi paket dan dependensi harus mengikuti versi stabil yang kompatibel pada saat inisialisasi proyek. Codex harus memeriksa kompatibilitas sebelum memasang atau memperbarui paket.
+
+## 3. Arsitektur Sistem
+
+Sistem menggunakan arsitektur berbasis web dengan Astro sebagai aplikasi frontend dan server, serta Supabase sebagai layanan database dan autentikasi.
+
+### 3.1 Komponen Sistem
+
+**A. Antarmuka pelanggan**
+
+Menyediakan halaman menu, detail produk, keranjang, checkout, dan informasi pembayaran.
+
+**B. Antarmuka admin**
+
+Menyediakan login, dashboard, pengelolaan menu, input pesanan kasir, daftar pesanan, dan verifikasi pembayaran.
+
+**C. Server Astro**
+
+Menangani validasi input, perhitungan harga, pembuatan pesanan, otorisasi tindakan administratif, serta komunikasi server dengan Supabase.
+
+**D. Supabase PostgreSQL**
+
+Menyimpan data menu, pesanan, detail pesanan, profil admin, dan pembayaran.
+
+**E. Supabase Auth**
+
+Mengautentikasi admin dan menyediakan identitas pengguna untuk pemeriksaan hak akses.
+
+### 3.2 Diagram Arsitektur
+
+```mermaid
+flowchart TD
+    A[Pelanggan] --> B[Halaman Astro]
+    C[Admin] --> D[Dashboard Astro]
+    B --> E[Astro Server Endpoints]
+    D --> E
+    E --> F[Validasi dan Otorisasi]
+    F --> G[Supabase Auth]
+    F --> H[Supabase PostgreSQL]
+    H --> I[Menu]
+    H --> J[Pesanan dan Detail]
+    H --> K[Pembayaran]
+```
+
+Diagram ini menggambarkan hubungan logis antarkomponen. Implementasi autentikasi, otorisasi, dan akses database harus mengikuti kebijakan keamanan yang ditetapkan dalam dokumen ini.
+
+## 4. Struktur Folder Proyek
+
+Struktur berikut menjadi target struktur kode yang disarankan. Codex dapat menyesuaikan struktur berdasarkan hasil inisialisasi Astro selama pemisahan tanggung jawab tetap jelas.
+
+```text
+shiboss-website/
+├── docs/
+│   ├── PRD.md
+│   ├── USER_STORIES.md
+│   ├── USER_FLOW.md
+│   ├── FLOWCHART.md
+│   ├── UI_SPECIFICATION.md
+│   ├── BUSINESS_RULES.md
+│   ├── DATABASE_ERD.md
+│   ├── TECHNICAL_SPECIFICATION.md
+│   ├── SECURITY.md
+│   ├── ACCEPTANCE_CRITERIA.md
+│   ├── TEST_PLAN.md
+│   ├── INCREMENT_PLAN.md
+│   └── diagrams/
+├── public/
+│   └── images/
+├── src/
+│   ├── components/
+│   ├── layouts/
+│   ├── pages/
+│   │   ├── index.astro
+│   │   ├── menu/
+│   │   ├── checkout/
+│   │   ├── order/
+│   │   ├── admin/
+│   │   └── api/
+│   ├── lib/
+│   │   ├── supabase/
+│   │   ├── validation/
+│   │   └── services/
+│   ├── types/
+│   └── styles/
+├── supabase/
+│   └── migrations/
+├── tests/
+├── .env.example
+├── .gitignore
+├── astro.config.mjs
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### Ketentuan struktur
+
+1. `components/` berisi komponen antarmuka yang dapat digunakan ulang.
+2. `layouts/` berisi kerangka halaman.
+3. `pages/` berisi halaman website dan endpoint server Astro.
+4. `lib/supabase/` berisi konfigurasi akses Supabase yang sesuai untuk server atau browser.
+5. `lib/validation/` berisi validasi input.
+6. `lib/services/` berisi logika bisnis yang terpisah dari komponen antarmuka.
+7. `types/` berisi tipe data TypeScript.
+8. `styles/` berisi CSS global dan design tokens.
+9. `supabase/migrations/` berisi perubahan skema database dalam bentuk SQL.
+10. `tests/` berisi pengujian otomatis jika sudah dikonfigurasi.
+
+Jangan membuat folder atau file source code kosong hanya untuk memenuhi struktur. Setiap file harus memiliki fungsi yang jelas.
+
+## 5. Konfigurasi Astro
+
+Astro harus dikonfigurasi untuk mendukung halaman server dan endpoint yang memerlukan pemrosesan dinamis.
+
+### 5.1 Mode Rendering
+
+Gunakan server rendering untuk halaman atau endpoint yang membutuhkan data dinamis, autentikasi, dan validasi server.
+
+Halaman menu yang bersifat publik dapat menggunakan pendekatan rendering yang sesuai dengan kebutuhan performa. Namun, operasi pembuatan pesanan dan perubahan data tetap harus melalui server.
+
+Pilihan adapter deployment harus ditentukan ketika lingkungan hosting dipilih. Jangan mengasumsikan bahwa konfigurasi pengembangan lokal otomatis sesuai dengan lingkungan produksi.
+
+### 5.2 Aturan Implementasi
+
+- Gunakan TypeScript untuk kode aplikasi.
+- Pisahkan komponen antarmuka dari logika bisnis.
+- Hindari menempatkan akses database langsung di setiap komponen.
+- Gunakan service layer untuk operasi yang dapat digunakan ulang.
+- Tangani error pada endpoint dan tampilkan pesan yang sesuai kepada pengguna.
+- Jangan menyimpan data rahasia dalam kode yang dikirim ke browser.
+
+## 6. Integrasi Supabase
+
+### 6.1 Database
+
+Supabase PostgreSQL menjadi sumber data utama untuk:
+- Data menu.
+- Data pesanan.
+- Detail pesanan.
+- Profil dan peran admin.
+- Data pembayaran.
+
+Nama kolom, relasi, constraint, dan aturan bisnis harus mengikuti `DATABASE_ERD.md` dan `BUSINESS_RULES.md`.
+
+### 6.2 Autentikasi
+
+Supabase Auth digunakan untuk login admin.
+
+Sistem tidak memerlukan login pelanggan pada rancangan awal. Pelanggan dapat melihat menu dan mengirim pesanan melalui QR Code tanpa membuat akun.
+
+Akses admin harus melalui sesi autentikasi yang valid dan pemeriksaan peran admin.
+
+### 6.3 Penggunaan Client
+
+Pisahkan konfigurasi client sesuai konteks penggunaannya.
+
+- Client browser hanya menggunakan konfigurasi dan kredensial publik yang memang aman untuk browser.
+- Client server menangani operasi yang memerlukan akses server.
+- Service role key tidak boleh digunakan pada kode frontend.
+- Operasi dengan hak istimewa harus memeriksa otorisasi secara eksplisit.
+
+### 6.4 Environment Variables
+
+Gunakan file `.env` lokal untuk nilai konfigurasi yang diperlukan aplikasi. Sediakan `.env.example` tanpa nilai rahasia.
+
+Contoh variabel:
+
+```dotenv
+PUBLIC_SUPABASE_URL=
+PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Nama variabel harus disesuaikan dengan paket dan implementasi Supabase yang digunakan.
+
+Ketentuan:
+1. Isi variabel dengan kredensial dari proyek Supabase milik pengembang.
+2. Jangan memasukkan kredensial asli ke `.env.example`.
+3. Jangan melakukan commit file `.env`.
+4. Jangan memberikan awalan `PUBLIC_` pada service role key.
+5. Jika menggunakan mekanisme kunci Supabase yang lebih baru, ikuti format yang didukung proyek dan SDK yang dipakai.
+
+## 7. Endpoint Server
+
+Endpoint berikut merupakan rancangan antarmuka backend. Nama dan metode HTTP dapat disesuaikan selama fungsi dan aturan aksesnya tetap sama.
+
+| Endpoint | Metode | Fungsi |
+|---|---|---|
+| `/api/menu` | GET | Mengambil daftar menu yang tersedia. |
+| `/api/orders` | POST | Membuat pesanan pelanggan melalui QR Code. |
+| `/api/orders/[id]` | GET | Mengambil detail pesanan sesuai hak akses. |
+| `/api/admin/orders` | GET | Mengambil daftar pesanan untuk admin. |
+| `/api/admin/orders` | POST | Membuat pesanan kasir. |
+| `/api/admin/orders/[id]` | PATCH | Memperbarui informasi atau status pesanan sesuai aturan. |
+| `/api/admin/menu` | POST | Menambahkan produk. |
+| `/api/admin/menu/[id]` | PATCH | Mengubah data produk. |
+| `/api/admin/payments/[id]/verify` | POST | Mencatat hasil verifikasi QRIS. |
+| `/api/admin/payments/[id]/cash` | POST | Mencatat penerimaan pembayaran tunai. |
+
+Endpoint tersebut merupakan rancangan, bukan pernyataan bahwa seluruh endpoint sudah dibuat.
+
+### 7.1 Validasi Endpoint
+
+Setiap endpoint harus:
+- Memeriksa metode HTTP.
+- Memvalidasi bentuk dan isi input.
+- Memeriksa autentikasi dan otorisasi jika diperlukan.
+- Menghitung harga dan total di server.
+- Menangani kegagalan database.
+- Mengembalikan status HTTP yang sesuai.
+- Tidak mengirimkan informasi rahasia dalam respons.
+
+### 7.2 Pembuatan Pesanan
+
+Ketika pelanggan membuat pesanan, server harus:
+1. Memvalidasi nama pelanggan dan nomor meja.
+2. Memastikan asal pesanan adalah `table_qr`.
+3. Memastikan metode pembayaran adalah `qris`.
+4. Mengambil harga produk dari database.
+5. Memastikan seluruh produk tersedia.
+6. Memvalidasi jumlah produk.
+7. Menghitung subtotal dan total.
+8. Menyimpan pesanan, detail produk, dan catatan pembayaran secara konsisten.
+9. Mengembalikan nomor pesanan setelah penyimpanan berhasil.
+
+Pembuatan pesanan dan detailnya harus atomik. Gunakan fungsi PostgreSQL atau mekanisme transaksi server yang sesuai, bukan beberapa operasi terpisah tanpa penanganan kegagalan.
+
+## 8. Logika Bisnis Backend
+
+### 8.1 Harga dan Total
+
+Server menjadi sumber perhitungan harga. Browser tidak boleh menentukan nilai total yang langsung dipercaya database.
+
+### 8.2 Asal Pesanan
+
+Nilai yang diizinkan:
+- `table_qr`: pesanan dari pelanggan melalui QR Code.
+- `cashier`: pesanan yang dimasukkan admin melalui dashboard.
+
+### 8.3 Metode Pembayaran
+
+Nilai yang diizinkan:
+- `qris`: pembayaran QRIS.
+- `cash`: pembayaran tunai.
+
+Aturan:
+- `table_qr` hanya boleh menggunakan `qris`.
+- `cashier` boleh menggunakan `cash` atau `qris`.
+
+Backend harus menolak kombinasi yang tidak sesuai.
+
+### 8.4 Verifikasi Pembayaran
+
+Pembayaran QRIS diperiksa secara manual oleh admin.
+
+Sistem tidak menggunakan integrasi otomatis untuk memastikan transaksi QRIS berhasil. Sistem juga tidak menyediakan fitur unggah bukti pembayaran pelanggan.
+
+Status pembayaran hanya boleh menjadi `paid` setelah admin mengonfirmasi transaksi.
+
+### 8.5 Status Pesanan
+
+Status pembayaran dan status pesanan disimpan secara terpisah.
+
+Perubahan status harus divalidasi berdasarkan hak akses dan aturan transisi yang telah disetujui.
+
+## 9. Keamanan
+
+### 9.1 Autentikasi dan Otorisasi
+
+- Dashboard admin memerlukan autentikasi.
+- Server memeriksa peran admin untuk setiap operasi administratif.
+- Menyembunyikan halaman atau tombol pada frontend bukan pengganti otorisasi server.
+- Pelanggan anonim tidak boleh mengakses daftar pesanan atau pembayaran milik pengguna lain.
+
+### 9.2 Row Level Security
+
+Aktifkan RLS pada tabel yang diakses melalui Supabase API.
+
+Kebijakan harus membatasi pembacaan dan perubahan data berdasarkan peran. Jangan memberikan akses penuh kepada pengguna anonim hanya agar fitur berjalan.
+
+### 9.3 Validasi dan Penyalahgunaan
+
+- Validasi semua input pada server.
+- Batasi frekuensi pembuatan pesanan anonim.
+- Cegah pengiriman pesanan berulang.
+- Gunakan pesan error yang tidak membocorkan struktur internal.
+- Batasi ukuran input dan jumlah item pesanan sesuai kebutuhan.
+- Gunakan proteksi CSRF jika mekanisme sesi dan autentikasi yang digunakan memerlukannya.
+
+### 9.4 Audit
+
+Catat informasi admin dan waktu saat melakukan verifikasi pembayaran.
+
+Jika proyek memerlukan audit lengkap atas perubahan status, tambahkan tabel riwayat aktivitas setelah kebutuhan tersebut disetujui.
+
+## 10. Penanganan Error
+
+Sistem harus menangani:
+- Kegagalan koneksi database.
+- Data produk tidak ditemukan.
+- Produk tidak tersedia.
+- Harga produk berubah.
+- Input tidak valid.
+- Sesi admin tidak valid.
+- Hak akses tidak mencukupi.
+- Kegagalan menyimpan pesanan.
+- Pembayaran QRIS belum terverifikasi.
+- Permintaan duplikat.
+
+Jangan mengembalikan respons sukses jika operasi database gagal.
+
+Untuk pembuatan pesanan, gunakan mekanisme idempotensi atau perlindungan duplikasi yang sesuai agar pengiriman ulang permintaan tidak menghasilkan beberapa pesanan yang tidak disengaja.
+
+## 11. Standar Kode
+
+1. Gunakan TypeScript dan tipe data yang jelas.
+2. Hindari penggunaan `any` tanpa alasan teknis.
+3. Pisahkan logika bisnis dari presentasi.
+4. Gunakan penamaan fungsi dan variabel yang deskriptif.
+5. Gunakan komponen yang dapat dipakai ulang.
+6. Hindari duplikasi logika perhitungan harga.
+7. Tangani error secara konsisten.
+8. Gunakan format kode yang konsisten.
+9. Jangan menambahkan dependensi tanpa kebutuhan.
+10. Perbarui dokumentasi ketika arsitektur berubah.
+
+## 12. Strategi Pengujian
+
+Pengujian harus mencakup:
+
+### 12.1 Pengujian Fungsi
+
+- Menu menampilkan produk yang tersedia.
+- Keranjang menghitung subtotal dan total dengan benar.
+- Checkout menolak data yang tidak lengkap.
+- Pesanan QR Code hanya menerima QRIS.
+- Pesanan kasir mendukung tunai dan QRIS.
+- Pembayaran QRIS memerlukan verifikasi manual.
+- Dashboard admin membatasi akses pengguna yang tidak berwenang.
+
+### 12.2 Pengujian Integrasi
+
+- Pesanan tersimpan bersama detail produknya.
+- Total pesanan sesuai dengan subtotal.
+- Pembayaran terhubung dengan pesanan yang benar.
+- Kegagalan penyimpanan tidak meninggalkan data transaksi yang tidak konsisten.
+- Perubahan menu tidak merusak riwayat transaksi.
+
+### 12.3 Pengujian Keamanan
+
+- Pengguna anonim tidak dapat mengakses dashboard.
+- Pelanggan tidak dapat mengubah status pembayaran.
+- Pelanggan tidak dapat memasukkan harga palsu.
+- Pesanan tidak dapat menggunakan metode pembayaran yang dilarang.
+- Service role key tidak muncul dalam bundle frontend.
+
+### 12.4 Pengujian Antarmuka
+
+- Halaman bekerja pada ponsel, tablet, dan desktop.
+- Formulir menampilkan validasi.
+- Loading, empty state, dan error state berfungsi.
+- Tampilan mengikuti `UI_SPECIFICATION.md`.
+
+## 13. Tahapan Implementasi
+
+### Increment 1: Menu Digital
+
+- Inisialisasi Astro.
+- Konfigurasi TypeScript dan CSS.
+- Integrasi dasar Supabase.
+- Implementasi identitas visual Shiboss.
+- Implementasi halaman menu.
+- Pengambilan data produk.
+- Pengujian tampilan responsif.
+
+### Increment 2: Pemesanan Menu
+
+- Implementasi detail produk.
+- Implementasi keranjang.
+- Implementasi checkout.
+- Validasi pesanan.
+- Penyimpanan pesanan dan detail produk.
+- Pembuatan nomor pesanan.
+- Instruksi pembayaran QRIS.
+- Pengujian integrasi database.
+
+### Increment 3: Administrasi dan Pembayaran
+
+- Implementasi autentikasi admin.
+- Implementasi dashboard.
+- Pengelolaan menu.
+- Input pesanan kasir.
+- Daftar dan detail pesanan.
+- Pencatatan pembayaran tunai.
+- Verifikasi QRIS manual.
+- Pembaruan status pesanan.
+- Pengujian keamanan dan penerimaan.
+
+Pembagian tersebut mengikuti struktur Incremental yang telah disepakati. Rincian implementasi dapat diperbarui jika ada perubahan ruang lingkup yang disetujui.
+
+## 14. Kriteria Penerimaan Teknis
+
+Implementasi dinyatakan memenuhi spesifikasi jika:
+- Aplikasi berjalan pada lingkungan pengembangan.
+- Astro terhubung dengan Supabase sesuai konfigurasi.
+- Data menu dapat diambil dari database.
+- Pesanan pelanggan dapat disimpan secara konsisten.
+- Pesanan kasir dapat dibuat oleh admin.
+- Aturan metode pembayaran ditegakkan pada backend.
+- Pembayaran QRIS memerlukan konfirmasi manual.
+- Status pembayaran dan pesanan terpisah.
+- RLS dan otorisasi admin berfungsi.
+- Tidak ada secret key pada frontend.
+- Pengujian utama berhasil.
+- Dokumentasi teknis sesuai implementasi aktual.
+
+## 15. Keputusan Teknis yang Masih Terbuka
+
+Hal berikut belum ditetapkan:
+1. Lingkungan hosting produksi.
+2. Adapter deployment Astro.
+3. Nama dan versi paket final.
+4. Mekanisme nomor pesanan.
+5. Kebijakan pembatasan frekuensi permintaan.
+6. Kebutuhan pelacakan pesanan pelanggan.
+7. Kebutuhan stok produk.
+8. Kebijakan pencatatan riwayat perubahan status.
+
+Codex tidak boleh menganggap keputusan tersebut sudah final. Pilihan implementasi harus didokumentasikan dan dikonfirmasi jika berdampak pada kebutuhan bisnis atau keamanan.
+
+## 16. Instruksi untuk Codex
+
+1. Baca seluruh dokumen proyek sebelum mengubah source code.
+2. Periksa struktur folder yang benar-benar tersedia.
+3. Jangan menganggap source code Astro sudah ada sebelum memeriksanya.
+4. Jika proyek belum diinisialisasi, siapkan Astro terlebih dahulu.
+5. Implementasikan satu increment pada satu waktu.
+6. Jangan mengimplementasikan semua fitur sekaligus tanpa pengujian.
+7. Jangan mengubah aturan bisnis yang sudah disepakati.
+8. Jangan memasukkan kredensial rahasia ke source code.
+9. Jalankan pemeriksaan tipe, build, dan pengujian yang tersedia.
+10. Laporkan file yang berubah, pengujian yang dijalankan, hasilnya, dan masalah yang belum selesai.
+11. Jika kebutuhan bertentangan atau belum ditentukan, jelaskan sebelum mengambil keputusan yang berdampak besar.
+
+**Akhir dokumen.**

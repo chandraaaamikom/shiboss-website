@@ -1,0 +1,36 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { isAdminConfigured } from '../../lib/admin/supabase';
+
+const enabled = isAdminConfigured();
+const status = Astro.url.searchParams.get('status');
+const messages: Record<string, string> = {
+  invalid: 'Email atau kata sandi tidak valid.',
+  denied: 'Akun ini tidak memiliki akses admin.',
+  unavailable: 'Pemeriksaan akses admin belum tersedia. Coba lagi setelah konfigurasi selesai.',
+  setup: 'Akses admin belum diaktifkan pada server.',
+};
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+---
+<AdminLayout title="Masuk admin" login>
+  <div class="admin-login-grid">
+    <div class="admin-login-intro">
+      <a class="admin-brand admin-login-brand" href="/"><span class="admin-brand-mark" aria-hidden="true">S</span><span class="admin-brand-copy"><strong>SHIBOSS <small>ADMIN</small></strong><span>Kedai Susu Segar</span></span></a>
+      <h1>Masuk ke Shiboss Admin</h1>
+      <p>Gunakan akun admin yang telah diberi hak akses untuk mengelola kedai.</p>
+      <a class="admin-back-link" href="/">Kembali ke website pelanggan</a>
+    </div>
+    <section class="admin-login-card" aria-labelledby="login-title">
+      <p class="admin-eyebrow">AKSES TERBATAS</p>
+      <h2 id="login-title">Masuk ke dashboard</h2>
+      {status && messages[status] && <p class={status === 'invalid' || status === 'denied' ? 'admin-alert' : 'admin-notice'} role={status === 'invalid' || status === 'denied' ? 'alert' : 'status'}>{messages[status]}</p>}
+      {!enabled && !(status && messages[status]) && <p class="admin-notice" role="status">Fondasi admin telah disiapkan, tetapi login belum diaktifkan. Akun admin, skema profil, dan kebijakan akses harus ditinjau lebih dulu.</p>}
+      <form action="/api/admin/login" method="post" class="admin-login-form">
+        <label>Email<input type="email" name="email" autocomplete="username" required maxlength="254" disabled={!enabled} /></label>
+        <label>Kata sandi<input type="password" name="password" autocomplete="current-password" required disabled={!enabled} /></label>
+        <button class="button" type="submit" disabled={!enabled}>{enabled ? 'Masuk' : 'Login belum aktif'}</button>
+      </form>
+      <p class="admin-login-help">Tidak ada pendaftaran akun admin melalui website ini.</p>
+    </section>
+  </div>
+</AdminLayout>

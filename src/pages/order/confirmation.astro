@@ -1,0 +1,10 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+Astro.response.headers.set('Cache-Control', 'no-store');
+---
+<MainLayout title="Konfirmasi pesanan">
+  <section class="container order-page confirmation-page">
+    <div class="order-panel" data-confirmation><h1>Memuat konfirmasi…</h1></div>
+  </section>
+</MainLayout>
+<script>import '../../scripts/order-confirmation';</script>

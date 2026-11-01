@@ -1,0 +1,23 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { loadMenu } from '../../lib/services/menu';
+
+const menu = await loadMenu();
+const identity = Astro.locals.admin!;
+const categoryCount = menu.status === 'ready' ? new Set(menu.items.map((item) => item.category)).size : null;
+const greetingName = identity.fullName?.split(' ')[0] || 'Admin';
+---
+<AdminLayout title="Dashboard" identity={identity}>
+  <section class="admin-panel admin-welcome"><div><p class="admin-overline">DASHBOARD SHIBOSS</p><h1>Selamat Datang, {greetingName}</h1><p>Pantau katalog menu dan akses halaman operasional kedai dari satu tempat.</p></div><a class="button" href="/admin/menu">Lihat Manajemen Menu →</a></section>
+  <p class="admin-notice admin-dashboard-notice">Data katalog dibaca dari layanan menu Shiboss. Ringkasan pesanan dan pembayaran belum terhubung; tidak ada angka transaksi simulasi.</p>
+  <div class="admin-summary-grid admin-dashboard-grid">
+    <a class="admin-summary-card" href="/admin/menu"><span>MENU TERSEDIA</span><strong>{menu.status === 'ready' ? menu.items.length : '—'}</strong><small>{menu.status === 'ready' ? 'Produk aktif dari Supabase →' : 'Layanan menu belum berhasil dimuat'}</small></a>
+    <a class="admin-summary-card" href="/admin/menu"><span>KATEGORI MENU</span><strong>{categoryCount ?? '—'}</strong><small>{categoryCount !== null ? 'Kategori produk aktif →' : 'Data belum tersedia'}</small></a>
+    <a class="admin-summary-card" href="/admin/orders"><span>PESANAN</span><strong class="admin-stat-unavailable">—</strong><small>Integrasi belum aktif →</small></a>
+    <a class="admin-summary-card" href="/admin/payments"><span>VERIFIKASI QRIS</span><strong class="admin-stat-unavailable">—</strong><small>Integrasi belum aktif →</small></a>
+  </div>
+  <div class="admin-dashboard-lower">
+    <section class="admin-panel admin-recent"><div class="admin-panel-heading"><div><h2>Pesanan Terbaru</h2><p>Data pesanan belum dapat diakses melalui dashboard.</p></div><a class="admin-text-link" href="/admin/orders">Buka halaman Pesanan →</a></div><div class="admin-inset-empty"><span aria-hidden="true">▤</span><h3>Daftar pesanan belum terhubung</h3><p>Pesanan akan ditampilkan setelah skema, akses admin, dan pengujian database disetujui.</p></div></section>
+    <section class="admin-panel admin-shortcuts"><h2>Pintasan Operasional</h2><a href="/admin/menu"><strong>Katalog Menu</strong><span>Kelola tampilan katalog aktif →</span></a><a href="/admin/orders"><strong>Pesanan</strong><span>Integrasi belum aktif →</span></a><a href="/admin/payments"><strong>Pembayaran QRIS</strong><span>Verifikasi belum aktif →</span></a></section>
+  </div>
+</AdminLayout>

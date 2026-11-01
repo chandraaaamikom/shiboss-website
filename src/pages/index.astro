@@ -1,0 +1,40 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { loadMenu } from '../lib/services/menu';
+import { rupiah } from '../lib/validation/menu';
+
+const result = await loadMenu();
+const items = result.status === 'ready' ? result.items : [];
+const photographed = items.filter((item) => item.image_url);
+const heroProduct = photographed.find((item) => item.category === 'Milkshake') ?? photographed[0];
+const beverageCategories = new Set(['Milkshake', 'Special Susu', 'Minuman Lainnya']);
+const supporting = photographed.filter((item) => item.id !== heroProduct?.id && beverageCategories.has(item.category)).slice(0, 2);
+const categories = [...new Set(items.map((item) => item.category))].map((name) => ({
+  name,
+  count: items.filter((item) => item.category === name).length,
+  photo: photographed.find((item) => item.category === name) ?? null,
+}));
+const featuredCategoryNames = ['Milkshake', 'Snack', 'Food'];
+const featuredCategories = featuredCategoryNames.flatMap((name) => categories.filter((category) => category.name === name));
+const otherCategories = categories.filter((category) => !featuredCategoryNames.includes(category.name));
+---
+<MainLayout title="Beranda">
+  <section class="home-hero"><div class="container hero-shell">
+    <div class="hero-copy"><p class="eyebrow">Kedai Susu Segar Shiboss</p><h1>Pilih yang segar untuk hari ini.</h1><p>Lihat menu dan harga yang tersedia, lalu simpan pilihanmu di keranjang.</p><div class="hero-actions"><a class="button" href="/menu">Jelajahi menu</a><a class="button secondary" href="/cart">Lihat keranjang</a></div></div>
+    <div class="hero-gallery" aria-label="Foto dari menu Shiboss yang tersedia">
+      {heroProduct ? <a class="hero-feature" href={`/menu/${heroProduct.id}`}><div class="product-media"><img src={heroProduct.image_url!} alt={heroProduct.name} width="640" height="480" /></div><span class="hero-feature-caption"><strong>{heroProduct.name}</strong><span>{rupiah(heroProduct.price)}</span></span></a> : <div class="hero-feature hero-image-missing"><span>Foto menu belum tersedia</span></div>}
+      <div class="hero-small-list">{supporting.map((item) => <a class="hero-small-card" href={`/menu/${item.id}`}><span class="product-media"><img src={item.image_url!} alt={item.name} width="240" height="180" /></span><span><strong>{item.name}</strong><small>{rupiah(item.price)}</small></span></a>)}</div>
+    </div>
+  </div></section>
+  <section class="container home-section" aria-labelledby="categories-heading">
+    <div class="section-heading"><div><p class="eyebrow">Dari menu saat ini</p><h2 id="categories-heading">Jelajahi kategori</h2></div><a href="/menu">Lihat semua menu</a></div>
+    {categories.length ? <>
+      <div class="featured-category-grid">{featuredCategories.map((category) => <a class="featured-category" href={`/menu?category=${encodeURIComponent(category.name)}`}><span class="featured-category-copy"><strong>{category.name}</strong><small>{category.count} menu</small><span class="featured-category-action">Lihat pilihan <span aria-hidden="true">↗</span></span></span><span class="featured-category-media">{category.photo ? <img src={category.photo.image_url!} alt={`Contoh menu ${category.name}: ${category.photo.name}`} width="320" height="260" loading="lazy" /> : <span>Foto belum tersedia</span>}</span></a>)}</div>
+      {otherCategories.length > 0 && <div class="category-grid">{otherCategories.map((category) => <a class="category-tile" href={`/menu?category=${encodeURIComponent(category.name)}`}><strong>{category.name}</strong><span>{category.count} menu</span><span class="category-arrow" aria-hidden="true">↗</span></a>)}</div>}
+    </> : <p>Daftar kategori belum dapat dimuat. Coba buka halaman menu beberapa saat lagi.</p>}
+  </section>
+  {photographed.length > 0 && <section class="container home-section" aria-labelledby="menu-preview-heading"><div class="section-heading"><div><p class="eyebrow">Pilihan yang sudah punya foto</p><h2 id="menu-preview-heading">Lihat lebih dekat</h2></div><a href="/menu">Jelajahi menu</a></div><div class="product-grid home-product-grid">{photographed.slice(0, 3).map((item) => <ProductCard item={item} />)}</div></section>}
+  <section class="container order-guidance" aria-labelledby="guidance-heading"><div class="guidance-heading"><p class="eyebrow">Cara menggunakan menu</p><h2 id="guidance-heading">Pilih, simpan, lalu tinjau.</h2><p>Pengiriman pesanan online belum diaktifkan.</p></div><ol class="guidance-steps"><li><span>01</span><div><strong>Jelajahi menu</strong><p>Lihat produk dan harga yang tersedia.</p></div></li><li><span>02</span><div><strong>Simpan pilihan</strong><p>Tambahkan menu ke keranjang dan atur jumlahnya.</p></div></li><li><span>03</span><div><strong>Periksa ringkasan</strong><p>Tinjau pilihanmu; pesanan belum dapat dikirim.</p></div></li></ol><a class="button secondary" href="/menu">Buka menu</a></section>
+</MainLayout>
+<script>import '../scripts/menu';</script>
